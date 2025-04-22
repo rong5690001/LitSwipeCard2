@@ -1,5 +1,6 @@
 package com.rong.litswipecard2
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -41,7 +42,8 @@ class MainActivity : AppCompatActivity(), CardStackLayout.OnCardPresentedListene
         // 设置ViewHolder工厂，用于创建卡片视图
         adapter.setViewHolderFactory(object : CardViewHolder.Factory<CardViewHolder<Card<*>>, Card<*>> {
             override fun createViewHolder(viewGroup: ViewGroup?, viewType: Int): CardViewHolder<Card<*>> {
-                return CardViewHolder(ItemCardBinding.inflate(LayoutInflater.from(this@MainActivity), cardStackLayout, false).root)
+                val view = LayoutInflater.from(this@MainActivity).inflate(R.layout.item_card, viewGroup, false)
+                return CardViewHolder(view)
             }
 
             override fun getViewType(card: Card<*>): Int {

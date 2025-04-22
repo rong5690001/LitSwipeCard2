@@ -358,11 +358,38 @@ abstract class CardItemTouchListener
         calculateTouchDelta(this.touchDelta, motionEvent, pointerIndex)
         val deltaX: Float = touchDelta.x
         val deltaY: Float = touchDelta.y
+        
+        // 获取当前卡片视图
+        val view = activeTouchPointer!!.viewHolder.itemView
+        
+        Timber.d("Touch Move - DeltaX: %.2f, DeltaY: %.2f, CurrentX: %.2f, CurrentY: %.2f", 
+            deltaX, deltaY, ViewCompat.getTranslationX(view), ViewCompat.getTranslationY(view))
+        
         if (activeTouchPointer!!.isDragging) {
             activeTouchPointer!!.updateDragDelta(deltaX, deltaY)
+            // 确保卡片在滑动时保持在最上层
+            view.bringToFront()
+            // 直接更新卡片位置
+            ViewCompat.setTranslationX(view, ViewCompat.getTranslationX(view) + deltaX)
+            ViewCompat.setTranslationY(view, ViewCompat.getTranslationY(view) + deltaY)
+            // 强制重绘
+            view.invalidate()
+            recyclerView.invalidate()
+            Timber.d("Dragging - New Position - X: %.2f, Y: %.2f", 
+                ViewCompat.getTranslationX(view), ViewCompat.getTranslationY(view))
         } else if (deltaX != 0.0f || deltaY != 0.0f) {
             activeTouchPointer!!.startDragging(true)
             activeTouchPointer!!.updateDragDelta(deltaX, deltaY)
+            // 确保卡片在滑动时保持在最上层
+            view.bringToFront()
+            // 直接更新卡片位置
+            ViewCompat.setTranslationX(view, ViewCompat.getTranslationX(view) + deltaX)
+            ViewCompat.setTranslationY(view, ViewCompat.getTranslationY(view) + deltaY)
+            // 强制重绘
+            view.invalidate()
+            recyclerView.invalidate()
+            Timber.d("Start Dragging - Initial Position - X: %.2f, Y: %.2f", 
+                ViewCompat.getTranslationX(view), ViewCompat.getTranslationY(view))
         }
     }
 
@@ -510,6 +537,14 @@ abstract class CardItemTouchListener
         val touchPointer = this.activeTouchPointer ?: return
 
         val actionMasked: Int = MotionEventCompat.getActionMasked(motionEvent)
+        Timber.d("Touch Event - Action: %s", when(actionMasked) {
+            MotionEvent.ACTION_DOWN -> "DOWN"
+            MotionEvent.ACTION_MOVE -> "MOVE"
+            MotionEvent.ACTION_UP -> "UP"
+            MotionEvent.ACTION_CANCEL -> "CANCEL"
+            else -> "OTHER"
+        })
+
         when (actionMasked) {
             MotionEvent.ACTION_POINTER_DOWN -> {}
             MotionEvent.ACTION_POINTER_UP -> {}
@@ -519,16 +554,19 @@ abstract class CardItemTouchListener
                 if (this.velocityTracker != null) {
                     velocityTracker!!.addMovement(motionEvent)
                     velocityTracker!!.computeCurrentVelocity(swipeThresholdDetector.velocityTrackingUnits)
+                    Timber.d("Touch Up - Velocity - X: %.2f, Y: %.2f", 
+                        velocityTracker!!.xVelocity, velocityTracker!!.yVelocity)
                 }
                 dispatchTouchEndEvent(touchPointer.viewHolder.itemView, motionEvent)
                 if (touchPointer.isDragging && shouldPerformSwipeOutAnimation(touchPointer)) {
+                    Timber.d("Performing swipe out animation")
                     performSwipeOutAnimation(touchPointer)
                 } else {
+                    Timber.d("Touch ended without swipe")
                     cardAnimator.onTouchEnd(touchPointer.viewHolder.itemView)
                 }
                 handleActionUp(motionEvent)
             }
-
             MotionEvent.ACTION_CANCEL -> handleActionCancel(motionEvent)
         }
     }

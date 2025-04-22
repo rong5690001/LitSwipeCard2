@@ -302,6 +302,21 @@ class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.La
     }
 
     override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
+        Timber.d("onLayoutChildren - Item count: %d", state.itemCount)
+        
+        if (state.itemCount == 0) {
+            Timber.d("No items to layout")
+            removeAndRecycleAllViews(recycler)
+            return
+        }
+
+        // 确保顶部卡片始终在最上层
+        val topCard = findTopCardView()
+        if (topCard != null) {
+            Timber.d("Bringing top card to front: %s", topCard.toString())
+            topCard.bringToFront()
+        }
+
         this.isInLayout = true
         detachAndScrapAttachedViews(recycler)
         layoutChildren(recycler, state)
@@ -342,6 +357,39 @@ class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.La
      */
     fun setOnCardPresentedListener(listener: OnCardPresentedListener) {
         this.cardPresentedListener = listener
+    }
+
+    private fun findTopCardView(): View? {
+        val childCount = childCount
+        Timber.d("Finding top card - Child count: %d", childCount)
+        
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
+            if (child != null) {
+                Timber.d("Checking child at position %d: %s", i, child.toString())
+                return child
+            }
+        }
+        Timber.d("No top card found")
+        return null
+    }
+
+    override fun scrollVerticallyBy(
+        dy: Int,
+        recycler: RecyclerView.Recycler,
+        state: RecyclerView.State
+    ): Int {
+        Timber.d("scrollVerticallyBy - dy: %d", dy)
+        return super.scrollVerticallyBy(dy, recycler, state)
+    }
+
+    override fun scrollHorizontallyBy(
+        dx: Int,
+        recycler: RecyclerView.Recycler,
+        state: RecyclerView.State
+    ): Int {
+        Timber.d("scrollHorizontallyBy - dx: %d", dx)
+        return super.scrollHorizontallyBy(dx, recycler, state)
     }
 
     companion object {

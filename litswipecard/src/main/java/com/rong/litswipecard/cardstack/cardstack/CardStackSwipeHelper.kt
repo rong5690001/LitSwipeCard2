@@ -15,6 +15,7 @@ import com.rong.litswipecard.cardstack.swipe.TouchPointer
 import com.rong.litswipecard.cardstack.view.CardDecorationListener
 import com.rong.litswipecard.cardstack.view.CardStackLayout
 import java.util.Collections
+import timber.log.Timber
 
 
 /**
@@ -216,6 +217,8 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
     }
 
     init {
+        Timber.d("Initializing CardStackSwipeHelper")
+        
         // 初始化工具类和组件
         val cardItemTouchHelperUtil = CardItemTouchHelperUtil()
         val animator = CardAnimator()
@@ -253,6 +256,8 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
         // 创建卡片对控制器和顶部卡片移动管理器
         this.decorationPairController = CardDecorationPairController(cardStackLayout, thresholdDetector)
         this.topCardMovedManager = CardDecorationManager(cardStackLayout, thresholdDetector)
+        
+        Timber.d("CardStackSwipeHelper initialization completed")
     }
 
     /**
@@ -260,6 +265,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun addCardDecorationListener(listener: CardDecorationListener) {
+        Timber.d("Adding card decoration listener: %s", listener.javaClass.simpleName)
         decorationListenerWrapper.addGlobalListener(listener)
     }
 
@@ -268,6 +274,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun addOnCardPairStateChangeListener(listener: CardStackLayout.OnCardPairStateChangeListener) {
+        Timber.d("Adding card pair state change listener: %s", listener.javaClass.simpleName)
         decorationPairController.addOnCardPairStateChangeListener(listener)
     }
 
@@ -276,6 +283,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun addTopCardMovedListener(listener: CardStackLayout.OnTopCardMovedListener) {
+        Timber.d("Adding top card moved listener: %s", listener.javaClass.simpleName)
         topCardMovedManager.addTopCardMovedListener(listener)
     }
 
@@ -286,7 +294,9 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @return 是否影响已冻结的卡片
      */
     fun checkIfNewInsertsAffectFrozenCards(startIndex: Int, count: Int): Boolean {
+        Timber.d("Checking if new inserts affect frozen cards - Start: %d, Count: %d", startIndex, count)
         if (!cardAnimator.isInPausedState) {
+            Timber.d("No frozen cards found")
             return false
         }
         val endIndex = (count + startIndex) - 1
@@ -294,9 +304,11 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
         for (animation in pausedAnimations) {
             val adapterPosition = animation.viewHolder.adapterPosition
             if (adapterPosition >= startIndex && adapterPosition <= endIndex) {
+                Timber.d("Found affected frozen card at position: %d", adapterPosition)
                 return true
             }
         }
+        Timber.d("No affected frozen cards found")
         return false
     }
 
@@ -305,15 +317,19 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @return 是否有被冻结的动画卡片
      */
     fun hasFrozenAnimatingCards(): Boolean {
-        return cardAnimator.isInPausedState
+        val hasFrozen = cardAnimator.isInPausedState
+        Timber.d("Checking frozen animating cards: %b", hasFrozen)
+        return hasFrozen
     }
 
     /**
      * 暂停所有动画
      */
     fun pauseAnimations() {
+        Timber.d("Pausing all animations")
         val activeTouchPointer = cardTouchListener.activeTouchPointer
         if (activeTouchPointer != null) {
+            Timber.d("Starting recover animation for active touch pointer")
             cardAnimator.startRecoverAnimation(
                 activeTouchPointer.viewHolder,
                 recyclerView,
@@ -330,6 +346,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun removeCardDecorationListener(listener: CardDecorationListener) {
+        Timber.d("Removing card decoration listener: %s", listener.javaClass.simpleName)
         decorationListenerWrapper.removeGlobalListener(listener)
     }
 
@@ -337,6 +354,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * 移除卡片恢复动画状态监听器
      */
     fun removeCardRewindAnimationStateListener() {
+        Timber.d("Removing card rewind animation state listener")
         cardStackItemAnimator.clearRewindAnimationStateListener()
     }
 
@@ -345,6 +363,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun removeOnCardPairStateChangeListener(listener: CardStackLayout.OnCardPairStateChangeListener) {
+        Timber.d("Removing card pair state change listener: %s", listener.javaClass.simpleName)
         decorationPairController.removeOnCardPairStateChangeListener(listener)
     }
 
@@ -353,6 +372,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun removeTopCardMovedListener(listener: CardStackLayout.OnTopCardMovedListener) {
+        Timber.d("Removing top card moved listener: %s", listener.javaClass.simpleName)
         topCardMovedManager.removeTopCardMovedListener(listener)
     }
 
@@ -360,6 +380,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * 恢复暂停的动画
      */
     fun resumePausedAnimations() {
+        Timber.d("Resuming paused animations")
         cardAnimator.resumePausedAnimations()
         recyclerView.invalidate()
     }
@@ -369,10 +390,14 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @return 是否恢复成功
      */
     fun revertLastCardAnimation(): Boolean {
+        Timber.d("Attempting to revert last card animation")
         val result = cardAnimator.revertLastCardAnimation()
         if (result) {
+            Timber.d("Successfully reverted last card animation")
             cardTouchListener.unselectViewHolderDoNotPublishUpdate()
             recyclerView.invalidate()
+        } else {
+            Timber.d("Failed to revert last card animation")
         }
         return result
     }
@@ -381,6 +406,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * 恢复暂停的动画
      */
     fun revertPausedAnimations() {
+        Timber.d("Reverting paused animations")
         cardAnimator.revertPausedAnimations()
         recyclerView.invalidate()
     }
@@ -390,6 +416,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun setCardRewindAnimationStateListener(listener: CardStackLayout.CardRewindAnimationStateListener) {
+        Timber.d("Setting card rewind animation state listener: %s", listener.javaClass.simpleName)
         cardStackItemAnimator.setRewindAnimationStateListener(listener)
     }
 
@@ -398,6 +425,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun setOnPreSwipeListener(listener: OnPreSwipeListener) {
+        Timber.d("Setting pre-swipe listener: %s", listener.javaClass.simpleName)
         cardTouchListener.setPreSwipeListener(listener)
     }
 
@@ -407,6 +435,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun addCardDecorationListener(view: View, listener: CardDecorationListener) {
+        Timber.d("Adding card decoration listener for specific view: %s", view.toString())
         decorationListenerWrapper.addViewSpecificListener(view, listener)
     }
 
@@ -416,6 +445,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      * @param listener 监听器
      */
     fun removeCardDecorationListener(view: View, listener: CardDecorationListener) {
+        Timber.d("Removing card decoration listener from specific view: %s", view.toString())
         decorationListenerWrapper.removeViewSpecificListener(view, listener)
     }
 }

@@ -4,6 +4,7 @@ import android.graphics.Canvas
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.ViewCompat
 import com.rong.litswipecard.cardstack.model.SwipeDirection
 import com.rong.litswipecard.cardstack.swipe.SwipeThresholdDetector
 import com.rong.litswipecard.cardstack.view.CardDecorationListener
@@ -64,24 +65,27 @@ internal class CardDecorationManager(cardStackLayout: CardStackLayout, swipeThre
         val newTopCard = findTopCardView(preserveCurrentTopCard)
         val oldTopCard = this.topCardView
 
+        Timber.d("Updating top card - Preserve: %b, Old: %s, New: %s",
+            preserveCurrentTopCard, oldTopCard?.toString(), newTopCard?.toString())
 
         // 如果顶部卡片没有变化，不执行任何操作
         if (oldTopCard === newTopCard) {
+            Timber.d("Top card unchanged")
             return
         }
 
-
         // 如果存在旧的顶部卡片，移除其监听器并通知移动结束
         if (oldTopCard != null) {
+            Timber.d("Removing old top card")
             removeCardDecorationListener(oldTopCard)
             notifyTopCardMoveEnded(true)
             resetTranslationValues()
             this.topCardView = null
         }
 
-
         // 如果存在新的顶部卡片，设置为当前顶部卡片并添加监听器
         if (newTopCard != null) {
+            Timber.d("Setting new top card")
             this.topCardView = newTopCard
             addCardDecorationListener(newTopCard)
         }
@@ -211,13 +215,17 @@ internal class CardDecorationManager(cardStackLayout: CardStackLayout, swipeThre
         swipeDirection: SwipeDirection, isThresholdExceeded: Boolean, isTouchActive: Boolean
     ) {
         // 确保当前有顶部卡片，并且传入的视图就是顶部卡片
-
         val currentTopCard = this.topCardView
         if (currentTopCard == null || view !== currentTopCard) {
             Timber.w("onDecorationDrawOver without a topCard")
             return
         }
 
+        Timber.d("Decoration Draw Over - Translation: (%.2f, %.2f), Rotation: %.2f, Direction: %s, Threshold: %b, TouchActive: %b",
+            translationX, translationY, rotation, swipeDirection, isThresholdExceeded, isTouchActive)
+
+        // 确保顶部卡片始终在最上层
+        view.bringToFront()
 
         // 处理移动开始事件
         val oldTranslationX = this.currentTranslationX
@@ -227,26 +235,37 @@ internal class CardDecorationManager(cardStackLayout: CardStackLayout, swipeThre
                 val oldRotation = this.currentRotation
                 if (oldRotation == 0.0f && (oldTranslationX != translationX || oldTranslationY != translationY || oldRotation != rotation)) {
                     // 移动从零开始，通知移动开始
+                    Timber.d("Card movement started")
                     notifyTopCardMoveStarted()
                     this.currentTranslationX = translationX
                     this.currentTranslationY = translationY
                     this.currentRotation = rotation
+                    // 直接更新视图位置
+                    ViewCompat.setTranslationX(view, translationX)
+                    ViewCompat.setTranslationY(view, translationY)
+                    view.rotation = rotation
+                    view.invalidate()
                 }
             }
         }
 
-
         // 处理移动结束和移动中事件
         if (translationX == 0.0f && translationY == 0.0f && rotation == 0.0f &&
-            (oldTranslationX != translationX || this.currentTranslationY != translationY || this.currentRotation != rotation)
-        ) {
+            (oldTranslationX != translationX || this.currentTranslationY != translationY || this.currentRotation != rotation)) {
             // 移动回到零位置，通知移动结束
+            Timber.d("Card movement ended - returned to original position")
             notifyTopCardMoveEnded(false)
         } else if (oldTranslationX != translationX || this.currentTranslationY != translationY || this.currentRotation != rotation) {
             // 移动位置发生变化，通知移动中
+            Timber.d("Card movement in progress - New position: (%.2f, %.2f), Rotation: %.2f",
+                translationX, translationY, rotation)
             notifyTopCardMoved(translationX, translationY, rotation, isTouchActive)
+            // 直接更新视图位置
+            ViewCompat.setTranslationX(view, translationX)
+            ViewCompat.setTranslationY(view, translationY)
+            view.rotation = rotation
+            view.invalidate()
         }
-
 
         // 更新当前位置和旋转值
         this.currentTranslationX = translationX
