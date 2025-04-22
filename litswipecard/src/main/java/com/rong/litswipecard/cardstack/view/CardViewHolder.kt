@@ -58,11 +58,12 @@ class CardViewHolder<M : Card<*>?>(view: View) : RecyclerView.ViewHolder(view) {
      * @param view 卡片视图
      */
     init {
-        if (view is CardView<*>) {
+        try {
             @Suppress("UNCHECKED_CAST")
             this.cardView = view as CardView<M>
+        } catch (e: Exception) {
+            throw IllegalArgumentException("cardView must implement ${CardView::class.java.simpleName}, but is ${view::class.java.simpleName}")
         }
-        throw IllegalArgumentException("cardView must implement " + CardView::class.java.simpleName)
     }
 
     /**
