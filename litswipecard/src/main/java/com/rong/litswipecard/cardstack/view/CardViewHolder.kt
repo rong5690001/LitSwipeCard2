@@ -1,85 +1,168 @@
-package com.rong.litswipecard.cardstack.view;
+package com.rong.litswipecard.cardstack.view
 
-import android.view.View;
-import android.view.ViewGroup;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.RecyclerView;
-import com.rong.litswipecard.cardstack.animation.SwipeAnimation;
-import com.rong.litswipecard.cardstack.model.Card;
-import com.rong.litswipecard.cardstack.model.Direction;
+import android.view.View
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.rong.litswipecard.cardstack.animation.SwipeAnimation
+import com.rong.litswipecard.cardstack.model.Card
+import com.rong.litswipecard.cardstack.model.Direction
 
-/* loaded from: classes7.dex */
-public class CardViewHolder<M extends Card> extends RecyclerView.ViewHolder {
-    private CardView<M> cardView;
-    private M cardViewModel;
-    private boolean isAtTop;
+/**
+ * 卡片视图持有者
+ * 负责关联卡片数据和视图，并处理卡片的生命周期事件
+ *
+ * @param <M> 卡片数据模型类型，必须继承自Card
+</M> */
+class CardViewHolder<M : Card<*>?>(view: View) : RecyclerView.ViewHolder(view) {
+    /**
+     * 卡片视图
+     */
+    private var cardView: CardView<M>? = null
 
-    public interface Factory<VH extends CardViewHolder, T extends Card> {
-        VH createViewHolder(ViewGroup viewGroup, int i);
+    /**
+     * 卡片数据模型
+     */
+    private var cardViewModel: M? = null
 
-        int getViewType(T t);
+    /**
+     * 是否位于顶部
+     */
+    private var isAtTop = false
+
+    /**
+     * 视图持有者工厂接口
+     * 用于创建特定类型的CardViewHolder
+     */
+    interface Factory<VH : CardViewHolder<*>?, T : Card<*>?> {
+        /**
+         * 创建视图持有者
+         *
+         * @param viewGroup 父视图组
+         * @param viewType 视图类型
+         * @return 创建的视图持有者
+         */
+        fun createViewHolder(viewGroup: ViewGroup?, viewType: Int): VH
+
+        /**
+         * 获取卡片对应的视图类型
+         *
+         * @param card 卡片数据
+         * @return 视图类型
+         */
+        fun getViewType(card: T): Int
     }
 
-    /* JADX WARN: Multi-variable type inference failed */
-    public CardViewHolder(View view) {
-        super(view);
-        if (view instanceof CardView) {
-            this.cardView = (CardView) view;
-            return;
+    /**
+     * 构造函数
+     *
+     * @param view 卡片视图
+     */
+    init {
+        if (view is CardView<*>) {
+            @Suppress("UNCHECKED_CAST")
+            this.cardView = view as CardView<M>
         }
-        throw new IllegalArgumentException("cardView must implement " + CardView.class.getSimpleName());
+        throw IllegalArgumentException("cardView must implement " + CardView::class.java.simpleName)
     }
 
-    void bind(M m) {
-        this.cardViewModel = m;
-        this.cardView.bind(m);
+    /**
+     * 绑定卡片数据
+     *
+     * @param cardModel 卡片数据模型
+     */
+    fun bind(cardModel: M) {
+        this.cardViewModel = cardModel
+        cardView!!.bind(cardModel)
     }
 
-    public boolean canDragCard(Direction direction, M m) {
-        return true;
+    /**
+     * 判断卡片是否可以向指定方向拖动
+     *
+     * @param direction 拖动方向
+     * @param cardModel 卡片数据模型
+     * @return 是否可拖动
+     */
+    /**
+     * 判断当前卡片是否可以向指定方向拖动
+     *
+     * @param direction 拖动方向
+     * @return 是否可拖动
+     */
+    @JvmOverloads
+    fun canDragCard(direction: Direction?, cardModel: M? = this.cardViewModel): Boolean {
+        return true
     }
 
-    @Nullable
-    public SwipeAnimation getAppearingAnimation() {
-        return this.cardViewModel.getAppearingAnimation();
+    val appearingAnimation: SwipeAnimation?
+        /**
+         * 获取卡片出现时的动画
+         *
+         * @return 出现动画
+         */
+        get() = cardViewModel!!.appearingAnimation
+
+    val disappearingAnimation: SwipeAnimation?
+        /**
+         * 获取卡片消失时的动画
+         *
+         * @return 消失动画
+         */
+        get() = cardViewModel!!.disappearingAnimation
+
+    /**
+     * 判断卡片是否可滑动
+     *
+     * @param cardModel 卡片数据模型
+     * @return 是否可滑动
+     */
+    fun swipable(): Boolean {
+        return true
     }
 
-    @Nullable
-    public SwipeAnimation getDisappearingAnimation() {
-        return this.cardViewModel.getDisappearingAnimation();
+    /**
+     * 当卡片附加到卡片集合布局时调用
+     *
+     * @param cardCollectionLayout 卡片集合布局
+     */
+    fun onAttachedToCardCollectionLayout(cardCollectionLayout: CardCollectionLayout) {
+        cardView!!.onAttachedToCardCollectionLayout(cardCollectionLayout)
     }
 
-    public boolean isSwipable(M m) {
-        return true;
-    }
-
-    public void onAttachedToCardCollectionLayout(@NonNull CardCollectionLayout cardCollectionLayout) {
-        this.cardView.onAttachedToCardCollectionLayout(cardCollectionLayout);
-    }
-
-    public void onCardAtTop(boolean z) {
-        if (z && !this.isAtTop) {
-            this.cardView.onMovedToTop(this.cardViewModel);
-        } else if (!z && this.isAtTop) {
-            this.cardView.onRemovedFromTop(this.cardViewModel);
+    /**
+     * 当卡片位置变为顶部或从顶部移除时调用
+     *
+     * @param isAtTop 是否位于顶部
+     */
+    fun onCardAtTop(isAtTop: Boolean) {
+        if (isAtTop && !this.isAtTop) {
+            this.cardViewModel?.let { cardView!!.onMovedToTop(it) }
+        } else if (!isAtTop && this.isAtTop) {
+            this.cardViewModel?.let { cardView!!.onRemovedFromTop(it) }
         }
-        this.isAtTop = z;
+        this.isAtTop = isAtTop
     }
 
-    public void onCardViewRecycled() {
-        this.cardView.onCardViewRecycled();
+    /**
+     * 当卡片视图被回收时调用
+     */
+    fun onCardViewRecycled() {
+        cardView!!.onCardViewRecycled()
     }
 
-    public void onDetachedFromCardCollectionLayout(@NonNull CardCollectionLayout cardCollectionLayout) {
-        this.cardView.onDetachedFromCardCollectionLayout(cardCollectionLayout);
+    /**
+     * 当卡片从卡片集合布局分离时调用
+     *
+     * @param cardCollectionLayout 卡片集合布局
+     */
+    fun onDetachedFromCardCollectionLayout(cardCollectionLayout: CardCollectionLayout) {
+        cardView!!.onDetachedFromCardCollectionLayout(cardCollectionLayout)
     }
 
-    public boolean canDragCard(Direction direction) {
-        return canDragCard(direction, this.cardViewModel);
-    }
-
-    public boolean isSwipable() {
-        return isSwipable(this.cardViewModel);
-    }
+    val isSwipable: Boolean
+        /**
+         * 判断当前卡片是否可滑动
+         *
+         * @return 是否可滑动
+         */
+        get() = this.cardViewModel?.let { swipable() } == true
 }

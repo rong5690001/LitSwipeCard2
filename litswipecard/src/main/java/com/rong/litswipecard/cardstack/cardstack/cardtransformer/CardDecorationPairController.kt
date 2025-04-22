@@ -1,135 +1,207 @@
-package com.rong.litswipecard.cardstack.cardstack.cardtransformer;
+package com.rong.litswipecard.cardstack.cardstack.cardtransformer
 
-import android.view.View;
-import androidx.annotation.NonNull;
-import androidx.core.view.ViewCompat;
-import androidx.recyclerview.widget.RecyclerView;
-import com.tinder.cardstack.swipe.SwipeThresholdDetector;
-import com.tinder.cardstack.view.CardStackLayout;
-import com.tinder.cardstack.view.OnChildAttachStateChangePostLayoutListeners;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import android.view.View
+import androidx.core.view.ViewCompat
+import androidx.recyclerview.widget.RecyclerView
+import com.rong.litswipecard.cardstack.swipe.SwipeThresholdDetector
+import com.rong.litswipecard.cardstack.view.CardStackLayout
+import com.rong.litswipecard.cardstack.view.OnChildAttachStateChangePostLayoutListeners
 
-/* loaded from: classes7.dex */
-public class CardDecorationPairController implements OnChildAttachStateChangePostLayoutListeners {
-    private final CardStackLayout a0;
-    private final SwipeThresholdDetector b0;
-    private final List c0 = new ArrayList();
-    private final List d0 = new ArrayList();
+/**
+ * 卡片装饰对控制器
+ * 管理卡片堆栈中卡片对之间的视觉效果和变换
+ */
+class CardDecorationPairController(
+    /** 卡片堆栈布局  */
+    private val cardStackLayout: CardStackLayout,
+    /** 滑动阈值检测器  */
+    private val swipeThresholdDetector: SwipeThresholdDetector
+) : OnChildAttachStateChangePostLayoutListeners {
+    /** 卡片装饰对列表  */
+    private val decorationPairs: MutableList<CardDecorationPair> = ArrayList()
 
-    public CardDecorationPairController(@NonNull CardStackLayout cardStackLayout, @NonNull SwipeThresholdDetector swipeThresholdDetector) {
-        this.a0 = cardStackLayout;
-        this.b0 = swipeThresholdDetector;
-        cardStackLayout.addOnChildAttachStateChangeListenerPostLayout(this);
+    /** 卡片对状态变化监听器列表  */
+    private val pairStateChangeListeners: MutableList<CardStackLayout.OnCardPairStateChangeListener> = ArrayList()
+
+    /**
+     * 构造卡片装饰对控制器
+     */
+    init {
+        cardStackLayout.addOnChildAttachStateChangeListenerPostLayout(this)
     }
 
-    private void a(View view, View view2) {
-        a aVar = new a(view2, view, this.a0, this.b0);
-        this.c0.add(aVar);
-        d(aVar);
+    /**
+     * 创建卡片装饰对
+     * @param upperView 上层卡片视图
+     * @param lowerView 下层卡片视图
+     */
+    private fun createDecorationPair(upperView: View, lowerView: View) {
+        val decorationPair = CardDecorationPair(lowerView, upperView, this.cardStackLayout, this.swipeThresholdDetector)
+        decorationPairs.add(decorationPair)
+        notifyPairCreated(decorationPair)
     }
 
-    private void b(a aVar) {
-        e(aVar);
-        aVar.c();
+    /**
+     * 销毁卡片装饰对
+     * @param decorationPair 要销毁的卡片装饰对
+     */
+    private fun destroyDecorationPair(decorationPair: CardDecorationPair) {
+        notifyPairDestroyed(decorationPair)
+        decorationPair.destroy()
     }
 
-    private RecyclerView.LayoutParams c(View view) {
-        return (RecyclerView.LayoutParams) view.getLayoutParams();
+    /**
+     * 获取视图的布局参数
+     * @param view 视图
+     * @return 布局参数
+     */
+    private fun getLayoutParams(view: View): RecyclerView.LayoutParams {
+        return view.layoutParams as RecyclerView.LayoutParams
     }
 
-    private void d(a aVar) {
-        Iterator it2 = this.d0.iterator();
-        while (it2.hasNext()) {
-            ((CardStackLayout.OnCardPairStateChangeListener) it2.next()).onPairCreated(aVar.d(), aVar.e());
+    /**
+     * 通知卡片对创建事件
+     * @param decorationPair 创建的卡片装饰对
+     */
+    private fun notifyPairCreated(decorationPair: CardDecorationPair) {
+        for (listener in pairStateChangeListeners) {
+            listener.onPairCreated(decorationPair.upperCardView, decorationPair.lowerCardView)
         }
     }
 
-    private void e(a aVar) {
-        Iterator it2 = this.d0.iterator();
-        while (it2.hasNext()) {
-            ((CardStackLayout.OnCardPairStateChangeListener) it2.next()).onPairDestroyed(aVar.d(), aVar.e());
+    /**
+     * 通知卡片对销毁事件
+     * @param decorationPair 销毁的卡片装饰对
+     */
+    private fun notifyPairDestroyed(decorationPair: CardDecorationPair) {
+        for (listener in pairStateChangeListeners) {
+            listener.onPairDestroyed(decorationPair.upperCardView, decorationPair.lowerCardView)
         }
     }
 
-    private void f(View view) {
-        g(view, this.a0.getCardTransforms().getDefaultTransform());
+    /**
+     * 重置视图的变换
+     * @param view 要重置的视图
+     */
+    private fun resetViewTransform(view: View) {
+        applyTransform(view, cardStackLayout.cardTransforms.defaultTransform)
     }
 
-    private void g(View view, CardTransform cardTransform) {
-        ViewCompat.setScaleX(view, cardTransform.getStartScale());
-        ViewCompat.setScaleY(view, cardTransform.getStartScale());
-        ViewCompat.setTranslationY(view, 0.0f);
-        ViewCompat.setTranslationX(view, 0.0f);
-        ViewCompat.setTranslationZ(view, cardTransform.getStartTranslationZ());
-        ViewCompat.setRotation(view, 0.0f);
-        ViewCompat.setRotationY(view, 0.0f);
-        ViewCompat.setRotationX(view, 0.0f);
+    /**
+     * 应用变换到视图
+     * @param view 目标视图
+     * @param cardTransform 卡片变换
+     */
+    private fun applyTransform(view: View, cardTransform: CardTransform) {
+        ViewCompat.setScaleX(view, cardTransform.startScale)
+        ViewCompat.setScaleY(view, cardTransform.startScale)
+        ViewCompat.setTranslationY(view, 0.0f)
+        ViewCompat.setTranslationX(view, 0.0f)
+        ViewCompat.setTranslationZ(view, cardTransform.startTranslationZ)
+        ViewCompat.setRotation(view, 0.0f)
+        ViewCompat.setRotationY(view, 0.0f)
+        ViewCompat.setRotationX(view, 0.0f)
     }
 
-    private void h(View view) {
-        Iterator it2 = this.c0.iterator();
-        while (it2.hasNext()) {
-            a aVar = (a) it2.next();
-            if (aVar.e() == view || aVar.d() == view) {
-                it2.remove();
-                b(aVar);
+    /**
+     * 移除包含指定视图的所有卡片装饰对
+     * @param view 目标视图
+     */
+    private fun removeDecorationPairsContaining(view: View) {
+        val it = decorationPairs.iterator()
+        while (it.hasNext()) {
+            val decorationPair = it.next()
+            if (decorationPair.lowerCardView === view || decorationPair.upperCardView === view) {
+                it.remove()
+                destroyDecorationPair(decorationPair)
             }
         }
     }
 
-    private void i(View view) {
-        Iterator it2 = this.c0.iterator();
-        while (it2.hasNext()) {
-            a aVar = (a) it2.next();
-            if (aVar.d() == view) {
-                b(aVar);
-                it2.remove();
+    /**
+     * 移除以指定视图为上层卡片的装饰对
+     * @param view 上层卡片视图
+     */
+    private fun removeDecorationPairsWithUpperCard(view: View) {
+        val it = decorationPairs.iterator()
+        while (it.hasNext()) {
+            val decorationPair = it.next()
+            if (decorationPair.upperCardView === view) {
+                destroyDecorationPair(decorationPair)
+                it.remove()
             }
         }
     }
 
-    private void j(View view) {
-        Iterator it2 = this.c0.iterator();
-        while (it2.hasNext()) {
-            a aVar = (a) it2.next();
-            if (aVar.e() == view) {
-                b(aVar);
-                it2.remove();
+    /**
+     * 移除以指定视图为下层卡片的装饰对
+     * @param view 下层卡片视图
+     */
+    private fun removeDecorationPairsWithLowerCard(view: View) {
+        val it = decorationPairs.iterator()
+        while (it.hasNext()) {
+            val decorationPair = it.next()
+            if (decorationPair.lowerCardView === view) {
+                destroyDecorationPair(decorationPair)
+                it.remove()
             }
         }
     }
 
-    public void addOnCardPairStateChangeListener(@NonNull CardStackLayout.OnCardPairStateChangeListener onCardPairStateChangeListener) {
-        this.d0.add(onCardPairStateChangeListener);
+    /**
+     * 添加卡片对状态变化监听器
+     * @param listener 监听器
+     */
+    fun addOnCardPairStateChangeListener(listener: CardStackLayout.OnCardPairStateChangeListener) {
+        pairStateChangeListeners.add(listener)
     }
 
-    @Override // com.tinder.cardstack.view.OnChildAttachStateChangePostLayoutListeners
-    public void onChildViewAttachedPostLayout(@NonNull View view) {
-        int indexOfChild = this.a0.indexOfChild(view);
-        View childAt = this.a0.getChildAt(indexOfChild + 1);
-        View childAt2 = this.a0.getChildAt(indexOfChild - 1);
-        if (childAt != null) {
-            i(childAt);
-            a(childAt, view);
-        }
-        if (childAt2 != null && !c(childAt2).isItemRemoved()) {
-            j(childAt2);
-            a(view, childAt2);
-        }
-        if (childAt == null && childAt2 == null) {
-            g(view, DefaultCardTransforms.INSTANCE.getTOP_CARD_TRANSFORM());
+    /**
+     * 当子视图在布局完成后被附加时调用
+     * @param view 被附加的子视图
+     */
+    override fun onChildViewAttachedPostLayout(view: View?) {
+        view?.let {
+            val viewIndex = cardStackLayout.indexOfChild(it)
+            val nextView = cardStackLayout.getChildAt(viewIndex + 1)
+            val prevView = cardStackLayout.getChildAt(viewIndex - 1)
+
+            // 如果有下一个视图，创建以当前视图为上层、下一个视图为下层的卡片对
+            if (nextView != null) {
+                removeDecorationPairsWithUpperCard(nextView)
+                createDecorationPair(nextView, it)
+            }
+
+            // 如果有前一个视图且未被标记为移除，创建以当前视图为下层、前一个视图为上层的卡片对
+            if (prevView != null && !getLayoutParams(prevView).isItemRemoved) {
+                removeDecorationPairsWithLowerCard(prevView)
+                createDecorationPair(it, prevView)
+            }
+
+            // 如果没有相邻视图，应用顶部卡片变换
+            if (nextView == null && prevView == null) {
+                val transform = cardStackLayout.cardTransforms.getTransformForView(0)
+                applyTransform(it, transform)
+            }
         }
     }
 
-    @Override // com.tinder.cardstack.view.OnChildAttachStateChangePostLayoutListeners
-    public void onChildViewDetachedPostLayout(@NonNull View view) {
-        h(view);
-        f(view);
+    /**
+     * 当子视图在布局完成后被分离时调用
+     * @param view 被分离的子视图
+     */
+    override fun onChildViewDetachedPostLayout(view: View?) {
+        view?.let {
+            removeDecorationPairsContaining(it)
+            resetViewTransform(it)
+        }
     }
 
-    public void removeOnCardPairStateChangeListener(@NonNull CardStackLayout.OnCardPairStateChangeListener onCardPairStateChangeListener) {
-        this.d0.remove(onCardPairStateChangeListener);
+    /**
+     * 移除卡片对状态变化监听器
+     * @param listener 监听器
+     */
+    fun removeOnCardPairStateChangeListener(listener: CardStackLayout.OnCardPairStateChangeListener) {
+        pairStateChangeListeners.remove(listener)
     }
 }

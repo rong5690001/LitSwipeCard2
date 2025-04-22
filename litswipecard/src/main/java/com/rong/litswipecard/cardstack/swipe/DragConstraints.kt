@@ -1,108 +1,72 @@
-package com.rong.litswipecard.cardstack.swipe;
+package com.rong.litswipecard.cardstack.swipe
 
-import com.facebook.appevents.iap.InAppPurchaseConstants;
-import kotlin.Metadata;
-import kotlin.jvm.internal.DefaultConstructorMarker;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+/**
+ * 定义拖动约束条件的数据类
+ */
+class DragConstraints
+/**
+ * 默认构造函数，设置默认允许向上和向下拖动
+ */ @JvmOverloads constructor(
+    /**
+     * 获取是否可以向上拖动的标志
+     *
+     * @return 如果允许向上拖动，返回true；否则返回false
+     */
+    val canDragUp: Boolean = true,
+    /**
+     * 获取是否可以向下拖动的标志
+     *
+     * @return 如果允许向下拖动，返回true；否则返回false
+     */
+    val canDragDown: Boolean = true
+) {
+    /**
+     * 创建拖动约束实例
+     *
+     * @param canDragUp 是否允许向上拖动
+     * @param canDragDown 是否允许向下拖动
+     */
 
-@Metadata(d1 = {"\u0000 \n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\u0010\u000b\n\u0002\b\t\n\u0002\u0010\u000e\n\u0002\b\u0002\n\u0002\u0010\b\n\u0002\b\u000b\b\u0080\b\u0018\u00002\u00020\u0001B\u001b\u0012\b\b\u0002\u0010\u0003\u001a\u00020\u0002\u0012\b\b\u0002\u0010\u0004\u001a\u00020\u0002¢\u0006\u0004\b\u0005\u0010\u0006J\u0010\u0010\u0007\u001a\u00020\u0002HÆ\u0003¢\u0006\u0004\b\u0007\u0010\bJ\u0010\u0010\t\u001a\u00020\u0002HÆ\u0003¢\u0006\u0004\b\t\u0010\bJ$\u0010\n\u001a\u00020\u00002\b\b\u0002\u0010\u0003\u001a\u00020\u00022\b\b\u0002\u0010\u0004\u001a\u00020\u0002HÆ\u0001¢\u0006\u0004\b\n\u0010\u000bJ\u0010\u0010\r\u001a\u00020\fHÖ\u0001¢\u0006\u0004\b\r\u0010\u000eJ\u0010\u0010\u0010\u001a\u00020\u000fHÖ\u0001¢\u0006\u0004\b\u0010\u0010\u0011J\u001a\u0010\u0013\u001a\u00020\u00022\b\u0010\u0012\u001a\u0004\u0018\u00010\u0001HÖ\u0003¢\u0006\u0004\b\u0013\u0010\u0014R\u0017\u0010\u0003\u001a\u00020\u00028\u0006¢\u0006\f\n\u0004\b\u0015\u0010\u0016\u001a\u0004\b\u0017\u0010\bR\u0017\u0010\u0004\u001a\u00020\u00028\u0006¢\u0006\f\n\u0004\b\u0018\u0010\u0016\u001a\u0004\b\u0019\u0010\b¨\u0006\u001a"}, d2 = {"Lcom/tinder/cardstack/swipe/DragConstraints;", "", "", "canDragUp", "canDragDown", "<init>", "(ZZ)V", "component1", "()Z", "component2", "copy", "(ZZ)Lcom/tinder/cardstack/swipe/DragConstraints;", "", InAppPurchaseConstants.METHOD_TO_STRING, "()Ljava/lang/String;", "", "hashCode", "()I", "other", "equals", "(Ljava/lang/Object;)Z", "a", "Z", "getCanDragUp", "b", "getCanDragDown", "cardstack_release"}, k = 1, mv = {1, 8, 0}, xi = 48)
-/* loaded from: classes7.dex */
-public final /* data */ class DragConstraints {
-
-    /* renamed from: a, reason: from kotlin metadata and from toString */
-    private final boolean canDragUp;
-
-    /* renamed from: b, reason: from kotlin metadata and from toString */
-    private final boolean canDragDown;
-
-    /* JADX WARN: Illegal instructions before constructor call */
-    /*
-        Code decompiled incorrectly, please refer to instructions dump.
-        To view partially-correct code enable 'Show inconsistent code' option in preferences
-    */
-    public DragConstraints() {
-        /*
-            r3 = this;
-            r0 = 3
-            r1 = 0
-            r2 = 0
-            r3.<init>(r2, r2, r0, r1)
-            return
-        */
-        throw new UnsupportedOperationException("Method not decompiled: com.tinder.cardstack.swipe.DragConstraints.<init>():void");
+    /**
+     * 创建一个新的约束对象，可以修改原有约束条件
+     *
+     * @param canDragUp 新的向上拖动设置
+     * @param canDragDown 新的向下拖动设置
+     * @return 新创建的DragConstraints对象
+     */
+    fun copy(canDragUp: Boolean, canDragDown: Boolean): DragConstraints {
+        return DragConstraints(canDragUp, canDragDown)
     }
 
-    public static /* synthetic */ DragConstraints copy$default(DragConstraints dragConstraints, boolean z, boolean z2, int i, Object obj) {
-        if ((i & 1) != 0) {
-            z = dragConstraints.canDragUp;
+    /**
+     * 比较两个DragConstraints对象是否相等
+     */
+    override fun equals(other: Any?): Boolean {
+        if (this === other) {
+            return true
         }
-        if ((i & 2) != 0) {
-            z2 = dragConstraints.canDragDown;
+        if (other !is DragConstraints) {
+            return false
         }
-        return dragConstraints.copy(z, z2);
+        val that = other
+        return this.canDragUp == that.canDragUp &&
+                this.canDragDown == that.canDragDown
     }
 
-    /* renamed from: component1, reason: from getter */
-    public final boolean getCanDragUp() {
-        return this.canDragUp;
+    /**
+     * 计算对象的哈希码
+     */
+    override fun hashCode(): Int {
+        var result = if (canDragUp) 1 else 0
+        result = 31 * result + (if (canDragDown) 1 else 0)
+        return result
     }
 
-    /* renamed from: component2, reason: from getter */
-    public final boolean getCanDragDown() {
-        return this.canDragDown;
-    }
-
-    @NotNull
-    public final DragConstraints copy(boolean canDragUp, boolean canDragDown) {
-        return new DragConstraints(canDragUp, canDragDown);
-    }
-
-    public boolean equals(@Nullable Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (!(other instanceof DragConstraints)) {
-            return false;
-        }
-        DragConstraints dragConstraints = (DragConstraints) other;
-        return this.canDragUp == dragConstraints.canDragUp && this.canDragDown == dragConstraints.canDragDown;
-    }
-
-    public final boolean getCanDragDown() {
-        return this.canDragDown;
-    }
-
-    public final boolean getCanDragUp() {
-        return this.canDragUp;
-    }
-
-    /* JADX WARN: Multi-variable type inference failed */
-    /* JADX WARN: Type inference failed for: r0v1, types: [int] */
-    /* JADX WARN: Type inference failed for: r0v4 */
-    /* JADX WARN: Type inference failed for: r0v5 */
-    public int hashCode() {
-        boolean z = this.canDragUp;
-        ?? r0 = z;
-        if (z) {
-            r0 = 1;
-        }
-        int i = r0 * 31;
-        boolean z2 = this.canDragDown;
-        return i + (z2 ? 1 : z2 ? 1 : 0);
-    }
-
-    @NotNull
-    public String toString() {
-        return "DragConstraints(canDragUp=" + this.canDragUp + ", canDragDown=" + this.canDragDown + ')';
-    }
-
-    public DragConstraints(boolean z, boolean z2) {
-        this.canDragUp = z;
-        this.canDragDown = z2;
-    }
-
-    public /* synthetic */ DragConstraints(boolean z, boolean z2, int i, DefaultConstructorMarker defaultConstructorMarker) {
-        this((i & 1) != 0 ? true : z, (i & 2) != 0 ? true : z2);
+    /**
+     * 返回对象的字符串表示
+     */
+    override fun toString(): String {
+        return "DragConstraints(canDragUp=" + this.canDragUp +
+                ", canDragDown=" + this.canDragDown + ')'
     }
 }

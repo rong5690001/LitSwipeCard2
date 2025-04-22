@@ -1,116 +1,186 @@
-package com.rong.litswipecard.cardstack.view;
+package com.rong.litswipecard.cardstack.view
 
-import android.view.ViewGroup;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.RecyclerView;
-import com.rong.litswipecard.cardstack.model.Card;
-import com.tinder.cardstack.view.CardViewHolder;
-import java.util.ArrayList;
-import java.util.List;
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.rong.litswipecard.cardstack.model.Card
 
-/* loaded from: classes7.dex */
-public class CardViewAdapter extends RecyclerView.Adapter {
-    private final List a = new ArrayList();
-    private CardViewHolder.Factory b;
+/**
+ * 卡片视图适配器
+ * 管理卡片数据和视图之间的绑定关系
+ */
+class CardViewAdapter<T : Card<*>?> : RecyclerView.Adapter<CardViewHolder<T>>() {
+    /**
+     * 卡片数据列表
+     */
+    private val cardList: MutableList<T> = ArrayList()
 
-    public CardViewAdapter() {
-        setHasStableIds(true);
+    /**
+     * 卡片视图持有者工厂
+     */
+    private var viewHolderFactory: CardViewHolder.Factory<CardViewHolder<T>, T>? = null
+
+    /**
+     * 构造函数
+     */
+    init {
+        setHasStableIds(true)
     }
 
-    @NonNull
-    public Card get(int i) {
-        return (Card) this.a.get(i);
+    /**
+     * 获取指定位置的卡片
+     *
+     * @param position 卡片位置
+     * @return 卡片对象
+     */
+    operator fun get(position: Int): Card<*> {
+        return cardList[position] as Card<*>
     }
 
-    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
-    public int getItemCount() {
-        return this.a.size();
-    }
-
-    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
-    public long getItemId(int i) {
-        if (i >= this.a.size()) {
-            return -1L;
+    /**
+     * 获取指定位置卡片的ID
+     *
+     * @param position 卡片位置
+     * @return 卡片ID
+     */
+    override fun getItemId(position: Int): Long {
+        if (position >= cardList.size) {
+            return -1L
         }
-        return get(i).getItem().hashCode();
+        return get(position).item.hashCode().toLong()
     }
 
-    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
-    public int getItemViewType(int i) {
-        CardViewHolder.Factory factory = this.b;
+    override fun getItemCount() = cardList.size
+
+    /**
+     * 获取指定位置卡片的视图类型
+     *
+     * @param position 卡片位置
+     * @return 视图类型
+     */
+    override fun getItemViewType(position: Int): Int {
+        val factory: CardViewHolder.Factory<CardViewHolder<T>, T>? = this.viewHolderFactory
         if (factory != null) {
-            return factory.getViewType((Card) this.a.get(i));
+            return factory.getViewType(cardList[position])
         }
-        throw new IllegalStateException("getItemViewType() called without providing a " + CardViewHolder.Factory.class);
+        throw IllegalStateException("getItemViewType() called without providing a " + CardViewHolder.Factory::class.java)
     }
 
-    public int getPositionForCard(Card card) {
-        String id = card.getId();
-        for (int i = 0; i < this.a.size(); i++) {
-            if (((Card) this.a.get(i)).getId().equals(id)) {
-                return i;
+    /**
+     * 获取指定卡片的位置
+     *
+     * @param card 要查找的卡片
+     * @return 卡片位置，如果不存在则返回-1
+     */
+    fun getPositionForCard(card: Card<*>): Int {
+        val id = card.id
+        for (i in cardList.indices) {
+            if ((cardList[i] as Card<*>).id == id) {
+                return i
             }
         }
-        return -1;
+        return -1
     }
 
-    public void insert(int i, Card card) {
-        this.a.add(i, card);
-        notifyItemInserted(i);
+    /**
+     * 在指定位置插入卡片
+     *
+     * @param position 插入位置
+     * @param card 要插入的卡片
+     */
+    fun insert(position: Int, card: T) {
+        cardList.add(position, card)
+        notifyItemInserted(position)
     }
 
-    public boolean isEmpty() {
-        return this.a.isEmpty();
+    val isEmpty: Boolean
+        /**
+         * 检查卡片列表是否为空
+         *
+         * @return 是否为空
+         */
+        get() = cardList.isEmpty()
+
+    /**
+     * 绑定视图持有者和数据
+     *
+     * @param viewHolder 视图持有者
+     * @param position 数据位置
+     */
+    override fun onBindViewHolder(viewHolder: CardViewHolder<T>, position: Int) {
+        viewHolder.bind(cardList[position])
     }
 
-    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
-    public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int i) {
-        if (viewHolder instanceof CardViewHolder) {
-            ((CardViewHolder) viewHolder).bind((Card) this.a.get(i));
-        }
-    }
-
-    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup viewGroup, int i) {
-        CardViewHolder.Factory factory = this.b;
+    /**
+     * 创建视图持有者
+     *
+     * @param viewGroup 父视图组
+     * @param viewType 视图类型
+     * @return 创建的视图持有者
+     */
+    override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): CardViewHolder<T> {
+        val factory: CardViewHolder.Factory<CardViewHolder<T>, T>? = this.viewHolderFactory
         if (factory != null) {
-            return factory.createViewHolder(viewGroup, i);
+            return factory.createViewHolder(viewGroup, viewType)
         }
-        throw new IllegalStateException("onCreateViewHolder() called without providing a " + CardViewHolder.Factory.class);
+        throw IllegalStateException("onCreateViewHolder() called without providing a " + CardViewHolder.Factory::class.java)
     }
 
-    @Override // androidx.recyclerview.widget.RecyclerView.Adapter
-    public void onViewRecycled(RecyclerView.ViewHolder viewHolder) {
-        if (viewHolder instanceof CardViewHolder) {
-            ((CardViewHolder) viewHolder).onCardViewRecycled();
+    /**
+     * 当视图被回收时调用
+     *
+     * @param viewHolder 被回收的视图持有者
+     */
+    override fun onViewRecycled(viewHolder: CardViewHolder<T>) {
+        viewHolder.onCardViewRecycled()
+    }
+
+    /**
+     * 获取顶部卡片
+     *
+     * @return 顶部卡片，如果列表为空则返回null
+     */
+    fun peek(): Card<*>? {
+        if (isEmpty) {
+            return null
         }
+        return cardList[0]
     }
 
-    @Nullable
-    public Card peek() {
-        if (isEmpty()) {
-            return null;
-        }
-        return (Card) this.a.get(0);
+    /**
+     * 移除指定位置的卡片
+     *
+     * @param position 要移除的位置
+     */
+    fun remove(position: Int) {
+        cardList.removeAt(position)
+        notifyItemRemoved(position)
     }
 
-    public void remove(int i) {
-        this.a.remove(i);
-        notifyItemRemoved(i);
+    /**
+     * 移除所有卡片
+     */
+    fun removeAll() {
+        cardList.clear()
+        notifyDataSetChanged()
     }
 
-    public void removeAll() {
-        this.a.clear();
-        notifyDataSetChanged();
+    /**
+     * 设置视图持有者工厂
+     *
+     * @param factory 视图持有者工厂
+     */
+    fun setViewHolderFactory(factory: CardViewHolder.Factory<CardViewHolder<T>, T>?) {
+        this.viewHolderFactory = factory
     }
 
-    public void setViewHolderFactory(CardViewHolder.Factory<CardViewHolder<Card>, Card> factory) {
-        this.b = factory;
-    }
-
-    public void insert(int i, @NonNull List<Card> list) {
-        this.a.addAll(i, list);
-        notifyItemRangeInserted(i, list.size());
+    /**
+     * 在指定位置插入多张卡片
+     *
+     * @param position 插入位置
+     * @param cards 要插入的卡片列表
+     */
+    fun insert(position: Int, cards: List<T>) {
+        cardList.addAll(position, cards)
+        notifyItemRangeInserted(position, cards.size)
     }
 }

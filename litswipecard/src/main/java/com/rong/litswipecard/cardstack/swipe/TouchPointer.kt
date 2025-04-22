@@ -1,98 +1,149 @@
-package com.rong.litswipecard.cardstack.swipe;
+package com.rong.litswipecard.cardstack.swipe
 
-import android.graphics.PointF;
-import android.view.MotionEvent;
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
+import android.graphics.PointF
+import android.view.MotionEvent
+import androidx.recyclerview.widget.RecyclerView
 
-/* loaded from: classes7.dex */
-public class TouchPointer {
-    private PointF a;
-    private float b;
-    private float c;
-    private RecyclerView.ViewHolder d;
-    private int e;
-    private float f;
-    private float g;
-    private boolean h;
-    final DragConstraints i;
+/**
+ * 触摸指针类
+ * 用于跟踪手指触摸的位置、拖动状态和相关视图
+ */
+class TouchPointer {
+    /**
+     * 获取初始触摸点
+     * @return 初始触摸点
+     */
+    var firstTouchPoint: PointF
+        private set
 
-    public TouchPointer(@NonNull RecyclerView.ViewHolder viewHolder, @NonNull PointF pointF, float f, float f2, int i, DragConstraints dragConstraints) {
-        this.d = viewHolder;
-        this.b = f;
-        this.c = f2;
-        this.e = i;
-        this.a = pointF;
-        this.i = dragConstraints;
+    /**
+     * 获取起始X坐标
+     * @return 起始X坐标
+     */
+    var startX: Float
+        private set
+
+    /**
+     * 获取起始Y坐标
+     * @return 起始Y坐标
+     */
+    var startY: Float
+        private set
+    val viewHolder: RecyclerView.ViewHolder
+
+    /**
+     * 获取指针ID
+     * @return 指针ID
+     */
+    var pointerId: Int
+        private set
+
+    /**
+     * 获取X方向拖动距离
+     * @return X方向拖动距离
+     */
+    var dragX: Float = 0f
+        private set
+
+    /**
+     * 获取Y方向拖动距离
+     * @return Y方向拖动距离
+     */
+    var dragY: Float = 0f
+        private set
+
+    /**
+     * 是否正在拖动
+     * @return 是否正在拖动
+     */
+    var isDragging: Boolean = false
+        private set
+    val dragConstraints: DragConstraints?
+
+    /**
+     * 构造函数
+     * @param viewHolder 视图持有者
+     * @param touchPoint 初始触摸点
+     * @param startX 起始X坐标
+     * @param startY 起始Y坐标
+     * @param pointerId 指针ID
+     * @param dragConstraints 拖拽约束
+     */
+    constructor(viewHolder: RecyclerView.ViewHolder, touchPoint: PointF, startX: Float, startY: Float, pointerId: Int, dragConstraints: DragConstraints?) {
+        this.viewHolder = viewHolder
+        this.startX = startX
+        this.startY = startY
+        this.pointerId = pointerId
+        this.firstTouchPoint = touchPoint
+        this.dragConstraints = dragConstraints
     }
 
-    int a() {
-        return this.e;
+    /**
+     * 设置X方向拖动距离
+     * @param dragX X方向拖动距离
+     */
+    fun updateDragX(dragX: Float) {
+        this.dragX = dragX
     }
 
-    float b() {
-        return this.f;
+    /**
+     * 设置Y方向拖动距离
+     * @param dragY Y方向拖动距离
+     */
+    fun updateDragY(dragY: Float) {
+        this.dragY = dragY
     }
 
-    float c() {
-        return this.g;
+    /**
+     * 设置拖动状态
+     * @param isDragging 是否正在拖动
+     */
+    fun startDragging(isDragging: Boolean) {
+        this.isDragging = isDragging
     }
 
-    float d() {
-        return this.b;
+    /**
+     * 更新触摸起始点
+     * @param x X坐标
+     * @param y Y坐标
+     */
+    fun updateTouchStartPoint(x: Float, y: Float) {
+        this.firstTouchPoint = PointF(x, y)
+        this.startX = x
+        this.startY = y
     }
 
-    float e() {
-        return this.c;
+    /**
+     * 更新拖动增量
+     * @param deltaX X方向增量
+     * @param deltaY Y方向增量
+     */
+    fun updateDragDelta(deltaX: Float, deltaY: Float) {
+        this.dragX = deltaX
+        this.dragY = deltaY
     }
 
-    boolean f() {
-        return this.h;
+    /**
+     * 字符串表示
+     * @return 对象的字符串表示
+     */
+    override fun toString(): String {
+        return "[sx=" + this.startX + "::sy=" + this.startY + "::dx=" + this.dragX + "::dy=" + this.dragY + "::apid=" + this.pointerId + "::vh=" + this.viewHolder + "]"
     }
 
-    void g(float f) {
-        this.f = f;
-    }
-
-    @NonNull
-    public PointF getFirstTouchPoint() {
-        return this.a;
-    }
-
-    @NonNull
-    public RecyclerView.ViewHolder getViewHolder() {
-        RecyclerView.ViewHolder viewHolder = this.d;
-        if (viewHolder != null) {
-            return viewHolder;
-        }
-        throw new IllegalStateException("Check implementation: null viewholder");
-    }
-
-    void h(float f) {
-        this.g = f;
-    }
-
-    void i(boolean z) {
-        this.h = z;
-    }
-
-    void j(float f, float f2) {
-        this.a = new PointF(f, f2);
-        this.b = f;
-        this.c = f2;
-    }
-
-    public String toString() {
-        return "[sx=" + this.b + "::sy=" + this.c + "::dx=" + this.f + "::dy=" + this.g + "::apid=" + this.e + "::vh=" + this.d + "]";
-    }
-
-    TouchPointer(RecyclerView.ViewHolder viewHolder, MotionEvent motionEvent, DragConstraints dragConstraints) {
-        this.e = -1;
-        this.d = viewHolder;
-        this.b = motionEvent.getX();
-        this.c = motionEvent.getY();
-        this.e = motionEvent.getPointerId(0);
-        this.a = new PointF(this.b, this.c);
-        this.i = dragConstraints;
+    /**
+     * 从MotionEvent构造TouchPointer
+     * @param viewHolder 视图持有者
+     * @param motionEvent 触摸事件
+     * @param dragConstraints 拖拽约束
+     */
+    internal constructor(viewHolder: RecyclerView.ViewHolder, motionEvent: MotionEvent, dragConstraints: DragConstraints?) {
+        this.pointerId = -1
+        this.viewHolder = viewHolder
+        this.startX = motionEvent.x
+        this.startY = motionEvent.y
+        this.pointerId = motionEvent.getPointerId(0)
+        this.firstTouchPoint = PointF(this.startX, this.startY)
+        this.dragConstraints = dragConstraints
     }
 }

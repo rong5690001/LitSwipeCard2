@@ -1,10 +1,19 @@
-package com.rong.litswipecard.cardstack.view;
+package com.rong.litswipecard.cardstack.view
 
-import androidx.annotation.NonNull;
-import com.rong.litswipecard.cardstack.model.Card;
-import com.rong.litswipecard.cardstack.model.SwipeDirection;
+import com.rong.litswipecard.cardstack.model.Card
+import com.rong.litswipecard.cardstack.model.SwipeDirection
 
-/* loaded from: classes7.dex */
-public interface OnPreSwipeListener {
-    boolean onPreSwipe(@NonNull Card card, @NonNull SwipeDirection swipeDirection);
+/**
+ * 卡片滑动前监听器接口
+ * 用于在卡片即将被滑动时进行拦截判断
+ */
+interface OnPreSwipeListener {
+    /**
+     * 当卡片即将被滑动时调用
+     *
+     * @param card 即将被滑动的卡片
+     * @param swipeDirection 滑动方向
+     * @return 是否允许滑动，返回true表示拦截滑动
+     */
+    fun onPreSwipe(card: Card<*>, swipeDirection: SwipeDirection): Boolean
 }

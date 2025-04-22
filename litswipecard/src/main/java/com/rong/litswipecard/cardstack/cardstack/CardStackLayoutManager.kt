@@ -1,239 +1,355 @@
-package com.rong.litswipecard.cardstack.cardstack;
+package com.rong.litswipecard.cardstack.cardstack
 
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewParent;
-import androidx.annotation.NonNull;
-import androidx.recyclerview.widget.RecyclerView;
-import com.tinder.cardstack.view.CardStackLayout;
-import com.tinder.cardstack.view.CardViewHolder;
-import com.tinder.cardstack.view.OnChildAttachStateChangePostLayoutListeners;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import timber.log.Timber;
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewParent
+import androidx.recyclerview.widget.RecyclerView
+import com.rong.litswipecard.cardstack.view.CardStackLayout
+import com.rong.litswipecard.cardstack.view.CardViewHolder
+import com.rong.litswipecard.cardstack.view.OnChildAttachStateChangePostLayoutListeners
+import timber.log.Timber
+import java.util.ArrayDeque
+import kotlin.math.min
 
-/* loaded from: classes7.dex */
-public class CardStackLayoutManager extends RecyclerView.LayoutManager {
-    private final CardStackLayout s0;
-    private boolean x0;
-    private final List t0 = new ArrayList();
-    private final List u0 = new ArrayList();
-    private int v0 = Integer.MIN_VALUE;
-    private int w0 = Integer.MIN_VALUE;
-    private View y0 = null;
-    private OnCardPresentedListener z0 = new OnCardPresentedListener() { // from class: com.tinder.cardstack.cardstack.c
-        @Override // com.tinder.cardstack.cardstack.CardStackLayoutManager.OnCardPresentedListener
-        public final void onCardPresented(View view) {
-            CardStackLayoutManager.I(view);
+/**
+ * 卡片堆叠布局管理器
+ * 负责管理卡片堆叠视图的布局逻辑，处理卡片的添加、移除和布局
+ */
+class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.LayoutManager() {
+    /** 关联的卡片堆叠布局  */
+    private val cardStackLayout: CardStackLayout = cardStackLayout
+    /**
+     * 检查是否正在布局过程中
+     * @return 如果正在布局过程中则返回true
+     */
+    /** 标记是否正在布局过程中  */
+    var isInLayout: Boolean = false
+        private set
+
+    /** 后布局阶段的子视图附加状态变化监听器列表  */
+    private val postLayoutListeners: MutableList<OnChildAttachStateChangePostLayoutListeners> = ArrayList()
+
+    /** 布局过程中的子视图附加状态变化事件队列  */
+    private val pendingAttachStateEvents: MutableList<AttachStateChangeEvent> = ArrayList()
+
+    /** 卡片宽度  */
+    private var cardWidth = Int.MIN_VALUE
+
+    /** 卡片高度  */
+    private var cardHeight = Int.MIN_VALUE
+
+    /** 当前顶部卡片  */
+    private var topCard: View? = null
+
+    /** 卡片呈现监听器  */
+    private var cardPresentedListener: OnCardPresentedListener = object : OnCardPresentedListener {
+        override fun onCardPresented(view: View) {
+            // 默认空实现
         }
-    };
-
-    public interface OnCardPresentedListener {
-        void onCardPresented(@NonNull View view);
     }
 
-    private class b implements RecyclerView.OnChildAttachStateChangeListener {
-        private b() {
-        }
+    /**
+     * 卡片呈现监听器接口
+     * 当新卡片被展示在顶部时触发
+     */
+    interface OnCardPresentedListener {
+        /**
+         * 当卡片被呈现在顶部时调用
+         * @param view 呈现的卡片视图
+         */
+        fun onCardPresented(view: View)
+    }
 
-        @Override // androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener
-        public void onChildViewAttachedToWindow(View view) {
-            CardViewHolder cardViewHolder = (CardViewHolder) CardStackLayoutManager.this.s0.getChildViewHolder(view);
+    /**
+     * 子视图附加状态变化监听器
+     * 处理子视图附加和分离的事件
+     */
+    private inner class ChildAttachStateChangeListener : RecyclerView.OnChildAttachStateChangeListener {
+        override fun onChildViewAttachedToWindow(view: View) {
+            // 通知CardViewHolder它已被附加到卡片收集布局
+            val cardViewHolder: CardViewHolder<*> = cardStackLayout.getChildViewHolder(view) as CardViewHolder<*>
             if (cardViewHolder != null) {
-                cardViewHolder.onAttachedToCardCollectionLayout(CardStackLayoutManager.this.s0);
+                cardViewHolder.onAttachedToCardCollectionLayout(this@CardStackLayoutManager.cardStackLayout)
             }
-            if (CardStackLayoutManager.this.isInLayout()) {
-                CardStackLayoutManager.this.u0.add(new c(view, true));
+
+
+            // 如果当前正在布局中，将事件添加到队列，否则直接处理
+            if (this@CardStackLayoutManager.isInLayout) {
+                pendingAttachStateEvents.add(AttachStateChangeEvent(view, true))
             } else {
-                CardStackLayoutManager.this.M(view);
+                this@CardStackLayoutManager.notifyChildAttached(view)
             }
         }
 
-        @Override // androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener
-        public void onChildViewDetachedFromWindow(View view) {
-            CardViewHolder cardViewHolder = (CardViewHolder) CardStackLayoutManager.this.s0.getChildViewHolder(view);
+        override fun onChildViewDetachedFromWindow(view: View) {
+            // 通知CardViewHolder它已从卡片收集布局分离
+            val cardViewHolder: CardViewHolder<*> = cardStackLayout.getChildViewHolder(view) as CardViewHolder<*>
             if (cardViewHolder != null) {
-                cardViewHolder.onCardAtTop(false);
-                cardViewHolder.onDetachedFromCardCollectionLayout(CardStackLayoutManager.this.s0);
+                cardViewHolder.onCardAtTop(false)
+                cardViewHolder.onDetachedFromCardCollectionLayout(this@CardStackLayoutManager.cardStackLayout)
             }
-            if (view == CardStackLayoutManager.this.y0) {
-                CardStackLayoutManager.this.y0 = null;
+
+
+            // 如果分离的是顶部卡片，清除顶部卡片引用
+            if (view === this@CardStackLayoutManager.topCard) {
+                this@CardStackLayoutManager.topCard = null
             }
-            if (CardStackLayoutManager.this.isInLayout()) {
-                CardStackLayoutManager.this.u0.add(new c(view, false));
+
+
+            // 如果当前正在布局中，将事件添加到队列，否则直接处理
+            if (this@CardStackLayoutManager.isInLayout) {
+                pendingAttachStateEvents.add(AttachStateChangeEvent(view, false))
             } else {
-                CardStackLayoutManager.this.O(view);
+                this@CardStackLayoutManager.notifyChildDetached(view)
             }
         }
     }
 
-    private static class c {
-        private final View a;
-        private final boolean b;
+    /**
+     * 是否为附加事件
+     * @return 如果是附加事件返回true，否则返回false
+     */
+    /**
+     * 附加状态变化事件类
+     * 用于在布局过程中缓存子视图的附加状态变化事件
+     */
+    private class AttachStateChangeEvent(
+        /** 相关的视图  */
+        val view: View,
+        /** 是否为附加事件（true为附加，false为分离）  */
+        val isAttached: Boolean
+    )
 
-        c(View view, boolean z) {
-            this.a = view;
-            this.b = z;
-        }
-
-        boolean b() {
-            return this.b;
-        }
+    /**
+     * 构造卡片堆叠布局管理器
+     * @param cardStackLayout 关联的卡片堆叠布局
+     */
+    init {
+        cardStackLayout.addOnChildAttachStateChangeListener(ChildAttachStateChangeListener())
+        setItemPrefetchEnabled(false)
     }
 
-    public CardStackLayoutManager(@NonNull CardStackLayout cardStackLayout) {
-        this.s0 = cardStackLayout;
-        cardStackLayout.addOnChildAttachStateChangeListener(new b());
-        setItemPrefetchEnabled(false);
-    }
+    /**
+     * 布局子视图
+     * 从Recycler获取视图并添加到布局中
+     *
+     * @param recycler 回收器
+     * @param state 状态
+     */
+    private fun layoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
+        // 最多显示2张卡片，或者可用的卡片数量
+        val cardCount = min(2.0, getItemCount().toDouble()).toInt()
+        val viewStack = ArrayDeque<View>(cardCount)
 
-    private void E(RecyclerView.Recycler recycler, RecyclerView.State state) {
-        int min = Math.min(2, getItemCount());
-        ArrayDeque arrayDeque = new ArrayDeque(min);
-        for (int i = 0; i < min; i++) {
-            if (L()) {
-                K(recycler);
+
+        // 准备所有需要的卡片视图
+        for (i in 0..<cardCount) {
+            // 如果尺寸未初始化，先初始化
+            if (needsMeasurement()) {
+                initCardMeasurements(recycler)
             }
-            View viewForPosition = recycler.getViewForPosition(i);
-            viewForPosition.setLayoutDirection(getLayoutDirection());
-            measureChildWithMargins(viewForPosition, 0, 0);
-            arrayDeque.push(viewForPosition);
-            layoutDecorated(viewForPosition, 0, 0, this.v0, this.w0);
+
+
+            // 获取卡片视图并测量
+            val cardView: View = recycler.getViewForPosition(i)
+            cardView.layoutDirection = getLayoutDirection()
+            measureChildWithMargins(cardView, 0, 0)
+            viewStack.push(cardView)
+
+
+            // 布局卡片
+            layoutDecorated(cardView, 0, 0, this.cardWidth, this.cardHeight)
         }
-        while (!arrayDeque.isEmpty()) {
-            View view = (View) arrayDeque.pop();
-            H(view);
-            addView(view);
-            CardViewHolder cardViewHolder = (CardViewHolder) this.s0.getChildViewHolder(view);
-            if (!arrayDeque.isEmpty()) {
-                cardViewHolder.onCardAtTop(false);
-            } else if (view != this.y0) {
-                cardViewHolder.onCardAtTop(true);
-                this.y0 = view;
-                this.z0.onCardPresented(view);
+
+
+        // 按照从下到上的顺序添加卡片视图
+        while (!viewStack.isEmpty()) {
+            val cardView = viewStack.pop()
+            ensureNotAttachedToAnotherParent(cardView)
+            addView(cardView)
+
+
+            // 设置卡片状态
+            val cardViewHolder: CardViewHolder<*> = cardStackLayout.getChildViewHolder(cardView) as CardViewHolder<*>
+            if (!viewStack.isEmpty()) {
+                // 不是顶部卡片
+                cardViewHolder.onCardAtTop(false)
+            } else if (cardView !== this.topCard) {
+                // 是顶部卡片，且不同于之前的顶部卡片
+                cardViewHolder.onCardAtTop(true)
+                this.topCard = cardView
+                cardPresentedListener.onCardPresented(cardView)
             }
         }
     }
 
-    private String F(Object obj) {
-        obj.getClass();
-        String canonicalName = obj.getClass().getCanonicalName();
-        return canonicalName != null ? canonicalName : "NA";
+    /**
+     * 获取对象的规范类名
+     * @param obj 对象
+     * @return 类的规范名称，如果无法获取则返回"NA"
+     */
+    private fun getCanonicalClassName(obj: Any): String {
+        obj.javaClass
+        val canonicalName = obj.javaClass.canonicalName
+        return canonicalName ?: "NA"
     }
 
-    private boolean G(View view) {
-        ViewParent parent = view.getParent();
-        return (parent == null || parent == this.s0) ? false : true;
+    /**
+     * 检查视图是否附加到了另一个父视图
+     * @param view 要检查的视图
+     * @return 如果视图附加到了其他父视图则返回true
+     */
+    private fun isAttachedToAnotherParent(view: View): Boolean {
+        val parent: ViewParent? = view.parent
+        return if (parent == null || parent === this.cardStackLayout) false else true
     }
 
-    private void H(View view) {
-        if (G(view)) {
-            J(view);
-            ViewParent parent = view.getParent();
-            if (parent instanceof ViewGroup) {
-                ((ViewGroup) parent).removeView(view);
+    /**
+     * 确保视图没有附加到其他父视图
+     * 如果已附加，则将其从父视图中移除
+     *
+     * @param view 要检查的视图
+     */
+    private fun ensureNotAttachedToAnotherParent(view: View) {
+        if (isAttachedToAnotherParent(view)) {
+            logUnexpectedParent(view)
+            val parent: ViewParent = view.parent
+            if (parent is ViewGroup) {
+                (parent as ViewGroup).removeView(view)
             }
         }
     }
 
-    /* JADX INFO: Access modifiers changed from: private */
-    public static /* synthetic */ void I(View view) {
-    }
-
-    private void J(View view) {
-        ViewParent parent = view.getParent();
-        if (parent == null || parent == this.s0) {
-            return;
+    /**
+     * 记录视图有意外的父视图
+     * @param view 视图
+     */
+    private fun logUnexpectedParent(view: View) {
+        val parent: ViewParent? = view.parent
+        if (parent == null || parent === this.cardStackLayout) {
+            return
         }
-        Timber.e(new RuntimeException("View has unexpected parent: ParentClassName=" + F(parent) + ", ViewClassName=" + F(view)));
+        Timber.e(RuntimeException("View has unexpected parent: ParentClassName=" + getCanonicalClassName(parent) + ", ViewClassName=" + getCanonicalClassName(view)))
     }
 
-    private void K(RecyclerView.Recycler recycler) {
-        View viewForPosition = recycler.getViewForPosition(0);
-        addView(viewForPosition);
-        measureChildWithMargins(viewForPosition, 0, 0);
-        this.w0 = getDecoratedMeasuredHeight(viewForPosition);
-        this.v0 = getDecoratedMeasuredWidth(viewForPosition);
-        detachAndScrapView(viewForPosition, recycler);
+    /**
+     * 初始化卡片测量值
+     * @param recycler 回收器
+     */
+    private fun initCardMeasurements(recycler: RecyclerView.Recycler) {
+        val cardView: View = recycler.getViewForPosition(0)
+        addView(cardView)
+        measureChildWithMargins(cardView, 0, 0)
+        this.cardHeight = getDecoratedMeasuredHeight(cardView)
+        this.cardWidth = getDecoratedMeasuredWidth(cardView)
+        detachAndScrapView(cardView, recycler)
     }
 
-    private boolean L() {
-        return this.v0 == Integer.MIN_VALUE || this.w0 == Integer.MIN_VALUE;
+    /**
+     * 检查是否需要测量卡片尺寸
+     * @return 如果卡片尺寸未初始化则返回true
+     */
+    private fun needsMeasurement(): Boolean {
+        return this.cardWidth == Int.MIN_VALUE || this.cardHeight == Int.MIN_VALUE
     }
 
-    /* JADX INFO: Access modifiers changed from: private */
-    public void M(View view) {
-        Iterator it2 = this.t0.iterator();
-        while (it2.hasNext()) {
-            ((OnChildAttachStateChangePostLayoutListeners) it2.next()).onChildViewAttachedPostLayout(view);
+    /**
+     * 通知子视图已附加
+     * @param view 附加的视图
+     */
+    private fun notifyChildAttached(view: View) {
+        val it: Iterator<OnChildAttachStateChangePostLayoutListeners> = postLayoutListeners.iterator()
+        while (it.hasNext()) {
+            it.next().onChildViewAttachedPostLayout(view)
         }
     }
 
-    private void N() {
-        for (c cVar : this.u0) {
-            if (cVar.b()) {
-                M(cVar.a);
+    /**
+     * 处理所有挂起的附加状态变化事件
+     */
+    private fun processPendingAttachStateEvents() {
+        for (event in this.pendingAttachStateEvents) {
+            if (event.isAttached) {
+                notifyChildAttached(event.view)
             } else {
-                O(cVar.a);
+                notifyChildDetached(event.view)
             }
         }
-        this.u0.clear();
+        pendingAttachStateEvents.clear()
     }
 
-    /* JADX INFO: Access modifiers changed from: private */
-    public void O(View view) {
-        Iterator it2 = this.t0.iterator();
-        while (it2.hasNext()) {
-            ((OnChildAttachStateChangePostLayoutListeners) it2.next()).onChildViewDetachedPostLayout(view);
+    /**
+     * 通知子视图已分离
+     * @param view 分离的视图
+     */
+    private fun notifyChildDetached(view: View) {
+        val it: Iterator<OnChildAttachStateChangePostLayoutListeners> = postLayoutListeners.iterator()
+        while (it.hasNext()) {
+            it.next().onChildViewDetachedPostLayout(view)
         }
     }
 
-    public void addOnChildAttachStateChangeListenerPostLayout(@NonNull OnChildAttachStateChangePostLayoutListeners onChildAttachStateChangePostLayoutListeners) {
-        this.t0.add(onChildAttachStateChangePostLayoutListeners);
+    /**
+     * 添加后布局阶段的子视图附加状态变化监听器
+     * @param listener 监听器
+     */
+    fun addOnChildAttachStateChangeListenerPostLayout(listener: OnChildAttachStateChangePostLayoutListeners) {
+        postLayoutListeners.add(listener)
     }
 
-    @Override // androidx.recyclerview.widget.RecyclerView.LayoutManager
-    public RecyclerView.LayoutParams generateDefaultLayoutParams() {
-        return new RecyclerView.LayoutParams(-2, -2);
+    override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams {
+        return RecyclerView.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
-    public boolean isInLayout() {
-        return this.x0;
+    override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
+        this.isInLayout = true
+        detachAndScrapAttachedViews(recycler)
+        layoutChildren(recycler, state)
+        this.isInLayout = false
     }
 
-    @Override // androidx.recyclerview.widget.RecyclerView.LayoutManager
-    public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
-        this.x0 = true;
-        if (getItemCount() == 0) {
-            detachAndScrapAttachedViews(recycler);
-        } else {
-            detachAndScrapAttachedViews(recycler);
-            E(recycler, state);
+    override fun onLayoutCompleted(state: RecyclerView.State) {
+        super.onLayoutCompleted(state)
+        processPendingAttachStateEvents()
+    }
+
+    /**
+     * 处理尺寸变化
+     * 在卡片堆叠布局尺寸变化时调用
+     *
+     * @param width 新宽度
+     * @param height 新高度
+     * @param oldWidth 旧宽度
+     * @param oldHeight 旧高度
+     */
+    fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
+        this.cardWidth = Int.MIN_VALUE
+        this.cardHeight = Int.MIN_VALUE
+        requestLayout()
+    }
+
+    /**
+     * 移除后布局阶段的子视图附加状态变化监听器
+     * @param listener 要移除的监听器
+     */
+    fun removeOnChildAttachStateChangeListenerPostLayout(listener: OnChildAttachStateChangePostLayoutListeners) {
+        postLayoutListeners.remove(listener)
+    }
+
+    /**
+     * 设置卡片呈现监听器
+     * @param listener 监听器
+     */
+    fun setOnCardPresentedListener(listener: OnCardPresentedListener) {
+        this.cardPresentedListener = listener
+    }
+
+    companion object {
+        /**
+         * 记录视图有意外的父视图
+         */
+        private fun defaultCardPresentedAction(view: View) {
+            // 默认空实现
         }
-    }
-
-    @Override // androidx.recyclerview.widget.RecyclerView.LayoutManager
-    public void onLayoutCompleted(RecyclerView.State state) {
-        super.onLayoutCompleted(state);
-        this.x0 = false;
-        N();
-    }
-
-    public void onSizeChanged(int i, int i2, int i3, int i4) {
-        if (i4 == i2 && i3 == i) {
-            return;
-        }
-        this.w0 = Integer.MIN_VALUE;
-        this.v0 = Integer.MIN_VALUE;
-    }
-
-    public void removeOnChildAttachStateChangeListenerPostLayout(@NonNull OnChildAttachStateChangePostLayoutListeners onChildAttachStateChangePostLayoutListeners) {
-        this.t0.remove(onChildAttachStateChangePostLayoutListeners);
-    }
-
-    public void setOnCardPresentedListener(@NonNull OnCardPresentedListener onCardPresentedListener) {
-        this.z0 = onCardPresentedListener;
     }
 }

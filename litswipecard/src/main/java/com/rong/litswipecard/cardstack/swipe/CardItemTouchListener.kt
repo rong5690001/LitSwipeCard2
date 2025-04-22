@@ -1,494 +1,583 @@
-package com.rong.litswipecard.cardstack.swipe;
+package com.rong.litswipecard.cardstack.swipe
 
-import android.graphics.PointF;
-import android.view.MotionEvent;
-import android.view.VelocityTracker;
-import android.view.View;
-import android.view.animation.Interpolator;
-import android.view.animation.LinearInterpolator;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.MotionEventCompat;
-import androidx.core.view.ViewCompat;
-import androidx.recyclerview.widget.RecyclerView;
-import com.rong.litswipecard.cardstack.animation.SwipeLeftAnimation;
-import com.rong.litswipecard.cardstack.animation.SwipeRightAnimation;
-import com.rong.litswipecard.cardstack.animation.SwipeUpAnimation;
-import com.rong.litswipecard.cardstack.animation.interpolator.SwipeOutInterpolator;
-import com.rong.litswipecard.cardstack.cardstack.CardStackSwipeHelper;
-import com.tinder.cardstack.model.Direction;
-import com.tinder.cardstack.model.SwipeDirection;
-import com.tinder.cardstack.swipe.CardAnimation;
-import com.tinder.cardstack.view.CardViewHolder;
-import timber.log.Timber;
+import android.graphics.PointF
+import android.view.MotionEvent
+import android.view.VelocityTracker
+import android.view.View
+import android.view.animation.Interpolator
+import android.view.animation.LinearInterpolator
+import androidx.core.view.MotionEventCompat
+import androidx.core.view.ViewCompat
+import androidx.recyclerview.widget.RecyclerView
+import com.rong.litswipecard.cardstack.animation.SwipeLeftAnimation
+import com.rong.litswipecard.cardstack.animation.SwipeRightAnimation
+import com.rong.litswipecard.cardstack.animation.SwipeUpAnimation
+import com.rong.litswipecard.cardstack.animation.interpolator.SwipeOutInterpolator
+import com.rong.litswipecard.cardstack.cardstack.CardStackSwipeHelper
+import com.rong.litswipecard.cardstack.model.Direction
+import com.rong.litswipecard.cardstack.model.SwipeDirection
+import com.rong.litswipecard.cardstack.view.CardViewHolder
+import timber.log.Timber
+import kotlin.math.abs
+import kotlin.math.max
 
-/* loaded from: classes7.dex */
-public abstract class CardItemTouchListener implements RecyclerView.OnItemTouchListener {
-    private static final CardStackSwipeHelper.OnPreSwipeListener g0 = new a();
-    private final SwipeThresholdDetector a0;
-
-    @Nullable
-    protected TouchPointer activeTouchPointer;
-    private final CardAnimator b0;
-    private final CardItemTouchHelperUtil c0;
-    private final PointF d0 = new PointF();
-    private CardStackSwipeHelper.OnPreSwipeListener e0 = g0;
-    private VelocityTracker f0;
-
-    class a implements CardStackSwipeHelper.OnPreSwipeListener {
-        a() {
-        }
-
-        @Override // com.tinder.cardstack.cardstack.CardStackSwipeHelper.OnPreSwipeListener
-        public boolean onPreSwipe(int i, SwipeDirection swipeDirection) {
-            return false;
-        }
-    }
-
-    static /* synthetic */ class b {
-        static final /* synthetic */ int[] a;
-
-        static {
-            int[] iArr = new int[SwipeDirection.values().length];
-            a = iArr;
-            try {
-                iArr[SwipeDirection.LEFT.ordinal()] = 1;
-            } catch (NoSuchFieldError unused) {
-            }
-            try {
-                a[SwipeDirection.RIGHT.ordinal()] = 2;
-            } catch (NoSuchFieldError unused2) {
-            }
-            try {
-                a[SwipeDirection.UP.ordinal()] = 3;
-            } catch (NoSuchFieldError unused3) {
-            }
-        }
-    }
-
-    public CardItemTouchListener(@NonNull SwipeThresholdDetector swipeThresholdDetector, @NonNull CardAnimator cardAnimator, @NonNull CardItemTouchHelperUtil cardItemTouchHelperUtil) {
-        this.a0 = swipeThresholdDetector;
-        this.b0 = cardAnimator;
-        this.c0 = cardItemTouchHelperUtil;
-    }
-
-    private void a() {
-        getRecyclerView().requestDisallowInterceptTouchEvent(false);
-    }
-
-    private void b(PointF pointF, MotionEvent motionEvent, int i) {
-        if (this.activeTouchPointer == null) {
-            pointF.set(0.0f, 0.0f);
-            return;
-        }
-        float x = motionEvent.getX(i);
-        float y = motionEvent.getY(i);
-        float d = x - this.activeTouchPointer.d();
-        float e = y - this.activeTouchPointer.e();
-        if (this.activeTouchPointer.b() != 0.0f || this.activeTouchPointer.c() != 0.0f) {
-            pointF.set(d, e);
-        } else if (this.a0.o(d, e)) {
-            pointF.set(0.0f, 0.0f);
-        } else {
-            this.activeTouchPointer.j(x, y);
-            pointF.set(0.1f, 0.1f);
-        }
-    }
-
-    private boolean c(RecyclerView.ViewHolder viewHolder) {
-        if (viewHolder instanceof CardViewHolder) {
-            return ((CardViewHolder) viewHolder).canDragCard(Direction.DOWN);
-        }
-        return true;
-    }
-
-    private boolean d(RecyclerView.ViewHolder viewHolder) {
-        if (viewHolder instanceof CardViewHolder) {
-            return ((CardViewHolder) viewHolder).canDragCard(Direction.UP);
-        }
-        return true;
-    }
-
-    private void e(View view, MotionEvent motionEvent) {
-        MotionEvent obtain = MotionEvent.obtain(motionEvent);
-        obtain.setAction(3);
-        view.dispatchTouchEvent(obtain);
-        obtain.recycle();
-    }
-
-    private void f(View view, MotionEvent motionEvent) {
-        int actionMasked = MotionEventCompat.getActionMasked(motionEvent);
-        if (actionMasked != 1 && actionMasked != 3) {
-            motionEvent.setAction(1);
-        }
-        view.dispatchTouchEvent(motionEvent);
-    }
-
-    private void g(TouchPointer touchPointer) {
-        float endX;
-        float f;
-        float f2;
-        float h;
-        float abs;
-        float f3;
-        float f4;
-        float f5;
-        float f6;
-        float b2 = touchPointer.b();
-        float c = touchPointer.c();
-        RecyclerView.ViewHolder viewHolder = touchPointer.getViewHolder();
-        View view = viewHolder.itemView;
-        float translationX = ViewCompat.getTranslationX(view);
-        float translationY = ViewCompat.getTranslationY(view);
-        float translationX2 = view.getTranslationX();
-        float translationY2 = view.getTranslationY();
-        float k = k(touchPointer, this.f0);
-        int i = b.a[this.a0.getDirectionFromMovement(b2, c).ordinal()];
-        if (i == 1) {
-            endX = new SwipeLeftAnimation().endX();
-            f = endX - translationX;
-            f2 = (k * f) + translationY;
-            h = h();
-            abs = Math.abs(endX);
-        } else {
-            if (i != 2) {
-                if (i != 3) {
-                    f5 = 0.0f;
-                    f = 0.0f;
-                    f4 = 0.0f;
-                    f6 = translationY2;
-                    f3 = translationX2;
-                } else {
-                    float endY = new SwipeUpAnimation().endY();
-                    f = endY - translationY;
-                    f6 = endY;
-                    f4 = i();
-                    f3 = translationX2;
-                    f5 = Math.abs(endY);
-                }
-                float f7 = f5 / 180.0f;
-                CardAnimation cardAnimation = new CardAnimation(viewHolder, CardAnimation.AnimationType.SWIPE_OUT, touchPointer.getFirstTouchPoint(), translationX, translationY, f3, f6);
-                float abs2 = Math.abs(f);
-                long max = (long) (abs2 / Math.max(f7, f4));
-                Interpolator j = j(f4, f7, max, abs2);
-                cardAnimation.setDuration(max);
-                cardAnimation.setInterpolator(j);
-                this.b0.addActiveAnimation(cardAnimation);
-                cardAnimation.start();
-                getRecyclerView().invalidate();
-            }
-            endX = new SwipeRightAnimation().endX();
-            f = endX - translationX;
-            f2 = (k * f) + translationY;
-            h = h();
-            abs = Math.abs(endX);
-        }
-        f3 = endX;
-        f4 = h;
-        f5 = abs;
-        f6 = f2;
-        float f72 = f5 / 180.0f;
-        CardAnimation cardAnimation2 = new CardAnimation(viewHolder, CardAnimation.AnimationType.SWIPE_OUT, touchPointer.getFirstTouchPoint(), translationX, translationY, f3, f6);
-        float abs22 = Math.abs(f);
-        long max2 = (long) (abs22 / Math.max(f72, f4));
-        Interpolator j2 = j(f4, f72, max2, abs22);
-        cardAnimation2.setDuration(max2);
-        cardAnimation2.setInterpolator(j2);
-        this.b0.addActiveAnimation(cardAnimation2);
-        cardAnimation2.start();
-        getRecyclerView().invalidate();
-    }
-
-    private float h() {
-        VelocityTracker velocityTracker = this.f0;
-        if (velocityTracker == null) {
-            return 0.0f;
-        }
-        velocityTracker.computeCurrentVelocity(this.a0.n());
-        return Math.abs(this.f0.getXVelocity()) / 1000.0f;
-    }
-
-    private float i() {
-        VelocityTracker velocityTracker = this.f0;
-        if (velocityTracker == null) {
-            return 0.0f;
-        }
-        velocityTracker.computeCurrentVelocity(this.a0.n());
-        return Math.abs(this.f0.getYVelocity()) / 1000.0f;
-    }
-
-    private Interpolator j(float f, float f2, long j, float f3) {
-        return f < f2 ? new SwipeOutInterpolator(f3, f, j) : new LinearInterpolator();
-    }
-
-    private float k(TouchPointer touchPointer, VelocityTracker velocityTracker) {
-        float b2 = touchPointer.b();
-        float c = b2 == 0.0f ? 0.0f : touchPointer.c() / b2;
-        if (velocityTracker == null) {
-            return c;
-        }
-        float xVelocity = velocityTracker.getXVelocity();
-        return xVelocity != 0.0f ? velocityTracker.getYVelocity() / xVelocity : c;
-    }
-
-    private boolean l(RecyclerView.ViewHolder viewHolder) {
-        if (viewHolder instanceof CardViewHolder) {
-            return ((CardViewHolder) viewHolder).isSwipable();
-        }
-        return true;
-    }
-
-    private boolean m(TouchPointer touchPointer) {
-        VelocityTracker velocityTracker = this.f0;
-        if (velocityTracker != null) {
-            return this.c0.b(touchPointer, velocityTracker, this.a0);
-        }
-        Timber.w("Check implementation: velocityTracker is Null::", new Object[0]);
-        return false;
-    }
-
-    private void n() {
-        VelocityTracker velocityTracker = this.f0;
-        if (velocityTracker != null) {
-            velocityTracker.recycle();
-            this.f0 = null;
-        }
-    }
-
-    private void o(MotionEvent motionEvent) {
-        TouchPointer touchPointer = this.activeTouchPointer;
-        if (touchPointer != null) {
-            RecyclerView.ViewHolder viewHolder = touchPointer.getViewHolder();
-            boolean f = this.activeTouchPointer.f();
-            if (!this.c0.c(this.activeTouchPointer, this.a0) || f) {
-                e(viewHolder.itemView, motionEvent);
-                boolean isReadyToAcceptSwipes = this.c0.isReadyToAcceptSwipes(viewHolder, getRecyclerView(), this.b0);
-                boolean m = m(this.activeTouchPointer);
-                if (isReadyToAcceptSwipes && m) {
-                    float b2 = this.activeTouchPointer.b();
-                    float c = this.activeTouchPointer.c();
-                    VelocityTracker velocityTracker = this.f0;
-                    float xVelocity = velocityTracker == null ? 0.0f : velocityTracker.getXVelocity();
-                    VelocityTracker velocityTracker2 = this.f0;
-                    if (this.e0.onPreSwipe(viewHolder.getAdapterPosition(), this.a0.b(b2, c, xVelocity, velocityTracker2 != null ? velocityTracker2.getYVelocity() : 0.0f))) {
-                        g(this.activeTouchPointer);
-                    } else {
-                        this.b0.startRecoverAnimation(viewHolder, getRecyclerView(), this.activeTouchPointer.getFirstTouchPoint());
-                    }
-                } else {
-                    this.b0.startRecoverAnimation(viewHolder, getRecyclerView(), this.activeTouchPointer.getFirstTouchPoint());
-                }
-            } else {
-                this.b0.startRecoverAnimation(viewHolder, getRecyclerView(), this.activeTouchPointer.getFirstTouchPoint());
-                f(viewHolder.itemView, motionEvent);
-            }
-        }
-        unselectViewHolder(true);
-    }
-
-    private void p(MotionEvent motionEvent) {
-        TouchPointer touchPointer = this.activeTouchPointer;
-        if (touchPointer != null) {
-            RecyclerView.ViewHolder viewHolder = touchPointer.getViewHolder();
-            e(viewHolder.itemView, motionEvent);
-            this.b0.startRecoverAnimation(viewHolder, getRecyclerView(), this.activeTouchPointer.getFirstTouchPoint());
-        }
-        unselectViewHolder(false);
-    }
-
-    private void q(MotionEvent motionEvent) {
-        VelocityTracker velocityTracker = this.f0;
-        if (velocityTracker != null) {
-            velocityTracker.addMovement(motionEvent);
-        }
-    }
-
-    protected void disallowTouchIntercept() {
-        getRecyclerView().requestDisallowInterceptTouchEvent(true);
-    }
-
-    protected void dispatchActionDownEvent(@NonNull View view, @NonNull MotionEvent motionEvent) {
-        if (MotionEventCompat.getActionMasked(motionEvent) != 0) {
-            motionEvent.setAction(0);
-        }
-        view.dispatchTouchEvent(motionEvent);
-    }
-
-    protected void findAndSelectViewHolder(MotionEvent motionEvent) {
-        if (this.activeTouchPointer == null && !this.b0.isInPausedState()) {
-            RecyclerView.ViewHolder findSelectableViewHolder = this.c0.findSelectableViewHolder(motionEvent, getRecyclerView(), this.b0);
-            if (findSelectableViewHolder != null && l(findSelectableViewHolder)) {
-                DragConstraints dragConstraints = new DragConstraints(d(findSelectableViewHolder), c(findSelectableViewHolder));
-                CardAnimation findCardAnimation = this.b0.findCardAnimation(findSelectableViewHolder);
-                if (findCardAnimation == null || findCardAnimation.getAnimationType() == CardAnimation.AnimationType.SWIPE_OUT) {
-                    this.activeTouchPointer = newTouchPointer(findSelectableViewHolder, motionEvent, dragConstraints);
-                } else {
-                    float x = motionEvent.getX() - findCardAnimation.getCurrX();
-                    float y = motionEvent.getY() - findCardAnimation.getCurrY();
-                    float x2 = motionEvent.getX() - x;
-                    float y2 = motionEvent.getY() - y;
-                    TouchPointer newTouchPointer = newTouchPointer(findCardAnimation, motionEvent, dragConstraints);
-                    this.activeTouchPointer = newTouchPointer;
-                    newTouchPointer.g(x2);
-                    this.activeTouchPointer.h(y2);
-                    this.b0.endCardAnimation(findSelectableViewHolder);
-                }
-                disallowTouchIntercept();
-                getRecyclerView().invalidate();
-            }
-        }
-    }
-
-    @Nullable
-    public TouchPointer getActiveTouchPointer() {
-        return this.activeTouchPointer;
-    }
-
-    @NonNull
-    protected abstract RecyclerView getRecyclerView();
-
-    protected void handleActionUp(@NonNull MotionEvent motionEvent) {
-        o(motionEvent);
-        n();
-    }
-
-    @NonNull
-    protected TouchPointer newTouchPointer(@NonNull CardAnimation cardAnimation, @NonNull MotionEvent motionEvent, DragConstraints dragConstraints) {
-        return new TouchPointer(cardAnimation.getViewHolder(), cardAnimation.isRunning() ? cardAnimation.getFirstTouchPoint() : new PointF(motionEvent.getX(), motionEvent.getY()), motionEvent.getX() - cardAnimation.getCurrX(), motionEvent.getY() - cardAnimation.getCurrY(), motionEvent.getPointerId(0), dragConstraints);
-    }
-
-    protected void obtainVelocityTracker() {
-        VelocityTracker velocityTracker = this.f0;
-        if (velocityTracker != null) {
-            velocityTracker.recycle();
-        }
-        this.f0 = VelocityTracker.obtain();
-    }
-
-    /* JADX WARN: Code restructure failed: missing block: B:7:0x000d, code lost:
-    
-        if (r3 != 3) goto L18;
+/**
+ * 卡片项触摸监听器
+ * 负责处理卡片的触摸事件、滑动判断和动画
+ */
+abstract class CardItemTouchListener
+/**
+ * 构造函数
+ * @param swipeThresholdDetector 滑动阈值检测器
+ * @param cardAnimator 卡片动画控制器
+ * @param cardItemTouchHelperUtil 触摸辅助工具
+ */(
+    private val swipeThresholdDetector: SwipeThresholdDetector,
+    private val cardAnimator: CardAnimator,
+    private val touchHelperUtil: CardItemTouchHelperUtil
+) : RecyclerView.OnItemTouchListener {
+    /**
+     * 获取当前活动的触摸指针
+     * @return 触摸指针，可能为null
      */
-    @Override // androidx.recyclerview.widget.RecyclerView.OnItemTouchListener
-    /*
-        Code decompiled incorrectly, please refer to instructions dump.
-        To view partially-correct code enable 'Show inconsistent code' option in preferences
-    */
-    public boolean onInterceptTouchEvent(androidx.recyclerview.widget.RecyclerView r3, android.view.MotionEvent r4) {
-        /*
-            r2 = this;
-            int r3 = androidx.core.view.MotionEventCompat.getActionMasked(r4)
-            r0 = 1
-            if (r3 == 0) goto L20
-            if (r3 == r0) goto L1c
-            r1 = 2
-            if (r3 == r1) goto L10
-            r1 = 3
-            if (r3 == r1) goto L1c
-            goto L3a
-        L10:
-            com.tinder.cardstack.swipe.TouchPointer r3 = r2.activeTouchPointer
-            if (r3 == 0) goto L3a
-            androidx.recyclerview.widget.RecyclerView r3 = r2.getRecyclerView()
-            r2.onTouchEvent(r3, r4)
-            goto L3a
-        L1c:
-            r2.handleActionUp(r4)
-            goto L3a
-        L20:
-            r2.disallowTouchIntercept()
-            r2.obtainVelocityTracker()
-            r2.findAndSelectViewHolder(r4)
-            com.tinder.cardstack.swipe.TouchPointer r3 = r2.activeTouchPointer
-            if (r3 == 0) goto L37
-            androidx.recyclerview.widget.RecyclerView$ViewHolder r3 = r3.getViewHolder()
-            android.view.View r3 = r3.itemView
-            r2.dispatchActionDownEvent(r3, r4)
-            goto L3a
-        L37:
-            r2.a()
-        L3a:
-            com.tinder.cardstack.swipe.TouchPointer r3 = r2.activeTouchPointer
-            if (r3 == 0) goto L3f
-            goto L40
-        L3f:
-            r0 = 0
-        L40:
-            return r0
-        */
-        throw new UnsupportedOperationException("Method not decompiled: com.tinder.cardstack.swipe.CardItemTouchListener.onInterceptTouchEvent(androidx.recyclerview.widget.RecyclerView, android.view.MotionEvent):boolean");
-    }
+    var activeTouchPointer: TouchPointer? = null
+        protected set
+    private val touchDelta: PointF = PointF()
+    private var preSwipeListener = DEFAULT_PRE_SWIPE_LISTENER
+    private var velocityTracker: VelocityTracker? = null
 
-    @Override // androidx.recyclerview.widget.RecyclerView.OnItemTouchListener
-    public void onRequestDisallowInterceptTouchEvent(boolean z) {
-    }
-
-    @Override // androidx.recyclerview.widget.RecyclerView.OnItemTouchListener
-    public void onTouchEvent(RecyclerView recyclerView, MotionEvent motionEvent) {
-        if (this.activeTouchPointer == null) {
-            return;
+    /**
+     * 默认预滑动监听器实现
+     * 默认不阻止任何滑动方向
+     */
+    private class DefaultPreSwipeListener : CardStackSwipeHelper.OnPreSwipeListener {
+        override fun onPreSwipe(position: Int, swipeDirection: SwipeDirection): Boolean {
+            return false // 默认不阻止任何滑动
         }
-        int actionMasked = MotionEventCompat.getActionMasked(motionEvent);
-        int findPointerIndex = motionEvent.findPointerIndex(this.activeTouchPointer.a());
-        if (actionMasked != 1) {
-            if (actionMasked != 2) {
-                if (actionMasked != 3) {
-                    if (actionMasked == 6 && motionEvent.getPointerId(MotionEventCompat.getActionIndex(motionEvent)) == this.activeTouchPointer.a()) {
-                        p(motionEvent);
-                    }
-                }
-            } else {
-                if (findPointerIndex < 0) {
-                    return;
-                }
-                b(this.d0, motionEvent, findPointerIndex);
-                PointF pointF = this.d0;
-                float f = pointF.x;
-                if (f == 0.0f && pointF.y == 0.0f) {
-                    return;
-                }
-                this.activeTouchPointer.g(f);
-                DragConstraints dragConstraints = this.activeTouchPointer.i;
-                boolean z = false;
-                boolean z2 = this.d0.y > 0.0f && dragConstraints.getCanDragDown();
-                if (this.d0.y < 0.0f && dragConstraints.getCanDragUp()) {
-                    z = true;
-                }
-                if (z2 || z) {
-                    this.activeTouchPointer.h(this.d0.y);
-                }
-                if (!this.c0.c(this.activeTouchPointer, this.a0) && !this.activeTouchPointer.f()) {
-                    this.activeTouchPointer.i(true);
-                }
-                getRecyclerView().invalidate();
+    }
+
+    /**
+     * 用于枚举方向的辅助类
+     */
+    private object SwipeDirectionOrdinalMap {
+        val DIRECTION_ORDINALS: IntArray
+
+        init {
+            val directions = IntArray(SwipeDirection.entries.toTypedArray().size)
+            DIRECTION_ORDINALS = directions
+            try {
+                directions[SwipeDirection.LEFT.ordinal] = 1
+            } catch (unused: NoSuchFieldError) {
             }
-            q(motionEvent);
-        }
-        handleActionUp(motionEvent);
-        q(motionEvent);
-    }
-
-    public void setPreSwipeListener(@NonNull CardStackSwipeHelper.OnPreSwipeListener onPreSwipeListener) {
-        this.e0 = onPreSwipeListener;
-    }
-
-    public void unselectViewHolder(boolean z) {
-        this.activeTouchPointer = null;
-        if (z) {
-            a();
+            try {
+                DIRECTION_ORDINALS[SwipeDirection.RIGHT.ordinal] = 2
+            } catch (unused2: NoSuchFieldError) {
+            }
+            try {
+                DIRECTION_ORDINALS[SwipeDirection.UP.ordinal] = 3
+            } catch (unused3: NoSuchFieldError) {
+            }
         }
     }
 
-    public void unselectViewHolderDoNotPublishUpdate() {
-        TouchPointer touchPointer = this.activeTouchPointer;
+    /**
+     * 允许父视图拦截触摸事件
+     */
+    private fun allowParentTouchIntercept() {
+        recyclerView.requestDisallowInterceptTouchEvent(false)
+    }
+
+    /**
+     * 计算触摸移动的增量
+     * @param deltaPoint 存储增量结果的点
+     * @param motionEvent 触摸事件
+     * @param pointerIndex 指针索引
+     */
+    private fun calculateTouchDelta(deltaPoint: PointF, motionEvent: MotionEvent, pointerIndex: Int) {
+        if (this.activeTouchPointer == null) {
+            deltaPoint.set(0.0f, 0.0f)
+            return
+        }
+        val x: Float = motionEvent.getX(pointerIndex)
+        val y: Float = motionEvent.getY(pointerIndex)
+        val deltaX = x - activeTouchPointer!!.startX
+        val deltaY = y - activeTouchPointer!!.startY
+        if (activeTouchPointer!!.dragX != 0.0f || activeTouchPointer!!.dragY != 0.0f) {
+            deltaPoint.set(deltaX, deltaY)
+        } else if (swipeThresholdDetector.isBelowThreshold(deltaX, deltaY)) {
+            deltaPoint.set(0.0f, 0.0f)
+        } else {
+            activeTouchPointer!!.updateTouchStartPoint(x, y)
+            deltaPoint.set(0.1f, 0.1f)
+        }
+    }
+
+    /**
+     * 检查视图持有者是否可以向下拖动
+     * @param viewHolder 视图持有者
+     * @return 是否可以向下拖动
+     */
+    private fun canDragDown(viewHolder: RecyclerView.ViewHolder): Boolean {
+        if (viewHolder is CardViewHolder<*>) {
+            return (viewHolder as CardViewHolder<*>).canDragCard(Direction.DOWN)
+        }
+        return true
+    }
+
+    /**
+     * 检查视图持有者是否可以向上拖动
+     * @param viewHolder 视图持有者
+     * @return 是否可以向上拖动
+     */
+    private fun canDragUp(viewHolder: RecyclerView.ViewHolder): Boolean {
+        if (viewHolder is CardViewHolder<*>) {
+            return viewHolder.canDragCard(Direction.UP)
+        }
+        return true
+    }
+
+    /**
+     * 发送取消触摸事件
+     * @param view 目标视图
+     * @param motionEvent 原始触摸事件
+     */
+    private fun dispatchCancelEvent(view: View, motionEvent: MotionEvent) {
+        val obtain: MotionEvent = MotionEvent.obtain(motionEvent)
+        obtain.setAction(MotionEvent.ACTION_CANCEL)
+        view.dispatchTouchEvent(obtain)
+        obtain.recycle()
+    }
+
+    /**
+     * 发送触摸结束事件
+     * @param view 目标视图
+     * @param motionEvent 原始触摸事件
+     */
+    private fun dispatchTouchEndEvent(view: View, motionEvent: MotionEvent) {
+        val actionMasked: Int = MotionEventCompat.getActionMasked(motionEvent)
+        if (actionMasked != MotionEvent.ACTION_UP && actionMasked != MotionEvent.ACTION_CANCEL) {
+            motionEvent.setAction(MotionEvent.ACTION_UP)
+        }
+        view.dispatchTouchEvent(motionEvent)
+    }
+
+    /**
+     * 执行卡片甩出动画
+     * @param touchPointer 触摸指针
+     */
+    private fun performSwipeOutAnimation(touchPointer: TouchPointer) {
+        val endX: Float
+        val deltaX: Float
+        val finalY: Float
+        val velocityX: Float
+        val absEndX: Float
+        val finalX: Float
+        val velocityY: Float
+        val absAnimDistance: Float
+        val finalTranslationY: Float
+
+        val dragX = touchPointer.dragX
+        val dragY = touchPointer.dragY
+        val viewHolder: RecyclerView.ViewHolder = touchPointer.viewHolder
+        val view: View = viewHolder.itemView
+        val currentTranslationX: Float = ViewCompat.getTranslationX(view)
+        val currentTranslationY: Float = ViewCompat.getTranslationY(view)
+        val translationX = view.translationX
+        val translationY = view.translationY
+        val yToXRatio = calculateYToXRatio(touchPointer, this.velocityTracker)
+
+        val directionOrdinal = SwipeDirectionOrdinalMap.DIRECTION_ORDINALS[swipeThresholdDetector.getDirectionFromMovement(dragX, dragY).ordinal]
+
+        if (directionOrdinal == 1) { // LEFT
+            endX = SwipeLeftAnimation().endX()
+            deltaX = endX - currentTranslationX
+            finalY = (yToXRatio * deltaX) + currentTranslationY
+            velocityX = xVelocity
+            absEndX = abs(endX.toDouble()).toFloat()
+            finalX = endX
+            velocityY = velocityX
+            absAnimDistance = absEndX
+            finalTranslationY = finalY
+        } else if (directionOrdinal == 2) { // RIGHT
+            endX = SwipeRightAnimation().endX()
+            deltaX = endX - currentTranslationX
+            finalY = (yToXRatio * deltaX) + currentTranslationY
+            velocityX = xVelocity
+            absEndX = abs(endX.toDouble()).toFloat()
+            finalX = endX
+            velocityY = velocityX
+            absAnimDistance = absEndX
+            finalTranslationY = finalY
+        } else if (directionOrdinal == 3) { // UP
+            val endY: Float = SwipeUpAnimation().endY()
+            deltaX = endY - currentTranslationY
+            finalTranslationY = endY
+            velocityY = yVelocity
+            finalX = translationX
+            absAnimDistance = abs(endY.toDouble()).toFloat()
+        } else { // 默认情况
+            absAnimDistance = 0.0f
+            deltaX = 0.0f
+            velocityY = 0.0f
+            finalTranslationY = translationY
+            finalX = translationX
+        }
+
+        val animationSpeedFactor = absAnimDistance / 180.0f
+        val cardAnimation = CardAnimation(
+            viewHolder,
+            CardAnimation.AnimationType.SWIPE_OUT,
+            touchPointer.firstTouchPoint,
+            currentTranslationX,
+            currentTranslationY,
+            finalX,
+            finalTranslationY
+        )
+
+        val absDeltaX = abs(deltaX.toDouble()).toFloat()
+        val duration = (absDeltaX / max(animationSpeedFactor.toDouble(), velocityY.toDouble())).toLong()
+        val interpolator = createInterpolator(velocityY, animationSpeedFactor, duration, absDeltaX)
+
+        cardAnimation.duration = duration
+        cardAnimation.setInterpolator(interpolator)
+        cardAnimator.addActiveAnimation(cardAnimation)
+        cardAnimation.start()
+        recyclerView.invalidate()
+    }
+
+    private val xVelocity: Float
+        /**
+         * 获取X轴方向的速度
+         * @return X轴速度（像素/秒）
+         */
+        get() {
+            val velocityTracker = this.velocityTracker ?: return 0.0f
+            velocityTracker.computeCurrentVelocity(swipeThresholdDetector.velocityTrackingUnits)
+            return (abs(this.velocityTracker!!.xVelocity.toDouble()) / 1000.0f).toFloat()
+        }
+
+    private val yVelocity: Float
+        /**
+         * 获取Y轴方向的速度
+         * @return Y轴速度（像素/秒）
+         */
+        get() {
+            val velocityTracker = this.velocityTracker ?: return 0.0f
+            velocityTracker.computeCurrentVelocity(swipeThresholdDetector.velocityTrackingUnits)
+            return (abs(this.velocityTracker!!.yVelocity.toDouble()) / 1000.0f).toFloat()
+        }
+
+    /**
+     * 创建插值器
+     * @param velocity 速度
+     * @param animSpeedFactor 动画速度因子
+     * @param duration 动画时长
+     * @param distance 动画距离
+     * @return 适合的插值器
+     */
+    private fun createInterpolator(velocity: Float, animSpeedFactor: Float, duration: Long, distance: Float): Interpolator {
+        return if (velocity < animSpeedFactor) SwipeOutInterpolator(distance, velocity, duration) else LinearInterpolator()
+    }
+
+    /**
+     * 计算Y轴与X轴的比率
+     * @param touchPointer 触摸指针
+     * @param velocityTracker 速度追踪器
+     * @return Y/X比率
+     */
+    private fun calculateYToXRatio(touchPointer: TouchPointer, velocityTracker: VelocityTracker?): Float {
+        val dragX = touchPointer.dragX
+        val ratio = if (dragX == 0.0f) 0.0f else touchPointer.dragY / dragX
+        if (velocityTracker == null) {
+            return ratio
+        }
+        val xVelocity = velocityTracker.xVelocity
+        return if (xVelocity != 0.0f) velocityTracker.yVelocity / xVelocity else ratio
+    }
+
+    /**
+     * 检查视图持有者是否可滑动
+     * @param viewHolder 视图持有者
+     * @return 是否可滑动
+     */
+    private fun isSwipable(viewHolder: RecyclerView.ViewHolder): Boolean {
+        if (viewHolder is CardViewHolder<*>) {
+            return viewHolder.swipable()
+        }
+        return true
+    }
+
+    /**
+     * 检查是否应该执行滑出动画
+     * @param touchPointer 触摸指针
+     * @return 是否应执行滑出动画
+     */
+    private fun shouldPerformSwipeOutAnimation(touchPointer: TouchPointer): Boolean {
+        val velocityTracker = this.velocityTracker
+        if (velocityTracker != null) {
+            return touchHelperUtil.shouldPerformSwipeAnimation(touchPointer, velocityTracker, this.swipeThresholdDetector)
+        }
+        Timber.w("Check implementation: velocityTracker is Null::", arrayOfNulls<Any>(0))
+        return false
+    }
+
+    /**
+     * 释放速度追踪器
+     */
+    private fun releaseVelocityTracker() {
+        val velocityTracker = this.velocityTracker
+        if (velocityTracker != null) {
+            velocityTracker.recycle()
+            this.velocityTracker = null
+        }
+    }
+
+    /**
+     * 处理动作按下事件
+     * @param motionEvent 触摸事件
+     */
+    private fun handleActionDown(motionEvent: MotionEvent) {
+        releaseVelocityTracker()
+        obtainVelocityTracker()
+        velocityTracker!!.addMovement(motionEvent)
+        findAndSelectViewHolder(motionEvent)
+    }
+
+    /**
+     * 处理动作移动事件
+     * @param motionEvent 触摸事件
+     */
+    private fun handleActionMove(motionEvent: MotionEvent) {
+        val velocityTracker = this.velocityTracker
+        velocityTracker?.addMovement(motionEvent)
+        val pointerIndex: Int = motionEvent.findPointerIndex(activeTouchPointer!!.pointerId)
+        if (pointerIndex < 0) {
+            Timber.w("Pointer index < 0!", arrayOfNulls<Any>(0))
+            return
+        }
+        calculateTouchDelta(this.touchDelta, motionEvent, pointerIndex)
+        val deltaX: Float = touchDelta.x
+        val deltaY: Float = touchDelta.y
+        if (activeTouchPointer!!.isDragging) {
+            activeTouchPointer!!.updateDragDelta(deltaX, deltaY)
+        } else if (deltaX != 0.0f || deltaY != 0.0f) {
+            activeTouchPointer!!.startDragging(true)
+            activeTouchPointer!!.updateDragDelta(deltaX, deltaY)
+        }
+    }
+
+    /**
+     * 处理动作取消事件
+     * @param motionEvent 触摸事件
+     */
+    private fun handleActionCancel(motionEvent: MotionEvent) {
+        val itemView = activeTouchPointer!!.viewHolder.itemView
+        dispatchCancelEvent(itemView, motionEvent)
+        unselectViewHolder(true)
+    }
+
+    /**
+     * 不允许父视图拦截触摸事件
+     */
+    protected fun disallowTouchIntercept() {
+        recyclerView.requestDisallowInterceptTouchEvent(true)
+    }
+
+    /**
+     * 分发动作按下事件
+     * @param view 目标视图
+     * @param motionEvent 触摸事件
+     */
+    protected fun dispatchActionDownEvent(view: View, motionEvent: MotionEvent) {
+        val obtain: MotionEvent = MotionEvent.obtain(motionEvent)
+        obtain.setAction(MotionEvent.ACTION_DOWN)
+        view.dispatchTouchEvent(obtain)
+        obtain.recycle()
+    }
+
+    /**
+     * 寻找并选择视图持有者
+     * @param motionEvent 触摸事件
+     */
+    protected fun findAndSelectViewHolder(motionEvent: MotionEvent) {
+        val childView: View? = recyclerView.findChildViewUnder(motionEvent.getX(), motionEvent.getY())
+        if (childView == null) {
+            Timber.w("Child view is null!", arrayOfNulls<Any>(0))
+            return
+        }
+        val viewHolder: RecyclerView.ViewHolder? = recyclerView.getChildViewHolder(childView)
+        if (viewHolder == null) {
+            Timber.w("View holder is null!", arrayOfNulls<Any>(0))
+            return
+        }
+        if (!isSwipable(viewHolder)) {
+            Timber.w("View holder not swipable!", arrayOfNulls<Any>(0))
+            return
+        }
+        val dragConstraints = createDragConstraints(viewHolder)
+        val touchPointer: TouchPointer = newTouchPointer(viewHolder, motionEvent, dragConstraints)
+        this.activeTouchPointer = touchPointer
+        dispatchActionDownEvent(childView, motionEvent)
+    }
+
+    /**
+     * 获取关联的RecyclerView
+     * @return RecyclerView实例
+     */
+    protected abstract val recyclerView: RecyclerView
+
+    /**
+     * 处理ACTION_UP事件
+     * @param motionEvent 触摸事件
+     */
+    protected fun handleActionUp(motionEvent: MotionEvent) {
+        unselectViewHolder(true)
+    }
+
+    /**
+     * 创建新的触摸指针（使用CardAnimation版本）
+     * @param cardAnimation 卡片动画
+     * @param motionEvent 触摸事件
+     * @param dragConstraints 拖拽约束
+     * @return 新的触摸指针
+     */
+    protected fun newTouchPointer(cardAnimation: CardAnimation, motionEvent: MotionEvent, dragConstraints: DragConstraints?): TouchPointer {
+        throw UnsupportedOperationException("Not implemented")
+    }
+
+    /**
+     * 获取速度追踪器
+     */
+    protected fun obtainVelocityTracker() {
+        if (this.velocityTracker == null) {
+            this.velocityTracker = VelocityTracker.obtain()
+        }
+    }
+
+    /**
+     * 创建拖拽约束
+     * @param viewHolder 视图持有者
+     * @return 拖拽约束
+     */
+    private fun createDragConstraints(viewHolder: RecyclerView.ViewHolder): DragConstraints {
+        val canDragUp = canDragUp(viewHolder)
+        val canDragDown = canDragDown(viewHolder)
+        return DragConstraints(canDragUp, canDragDown)
+    }
+
+    /**
+     * 拦截触摸事件
+     * @param recyclerView RecyclerView
+     * @param motionEvent 触摸事件
+     * @return 是否拦截
+     */
+    override fun onInterceptTouchEvent(recyclerView: RecyclerView, motionEvent: MotionEvent): Boolean {
+        if (this.activeTouchPointer != null) {
+            return true
+        }
+        val actionMasked: Int = MotionEventCompat.getActionMasked(motionEvent)
+        if (actionMasked != MotionEvent.ACTION_DOWN) {
+            return false
+        }
+        handleActionDown(motionEvent)
+        if (this.activeTouchPointer == null) {
+            return false
+        }
+        disallowTouchIntercept()
+
+        if (preSwipeListener.onPreSwipe(this.recyclerView.getChildAdapterPosition(activeTouchPointer!!.viewHolder.itemView), SwipeDirection.NONE)) {
+            handleActionCancel(motionEvent)
+            return false
+        }
+
+        this.recyclerView.parent.requestDisallowInterceptTouchEvent(true)
+        return activeTouchPointer!!.isDragging
+    }
+
+    /**
+     * 处理请求不允许拦截触摸事件
+     * @param disallowIntercept 是否不允许拦截
+     */
+    override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+    }
+
+    /**
+     * 处理触摸事件
+     * @param recyclerView RecyclerView
+     * @param motionEvent 触摸事件
+     */
+    override fun onTouchEvent(recyclerView: RecyclerView, motionEvent: MotionEvent) {
+        val touchPointer = this.activeTouchPointer ?: return
+
+        val actionMasked: Int = MotionEventCompat.getActionMasked(motionEvent)
+        when (actionMasked) {
+            MotionEvent.ACTION_POINTER_DOWN -> {}
+            MotionEvent.ACTION_POINTER_UP -> {}
+            MotionEvent.ACTION_DOWN -> handleActionDown(motionEvent)
+            MotionEvent.ACTION_MOVE -> handleActionMove(motionEvent)
+            MotionEvent.ACTION_UP -> {
+                if (this.velocityTracker != null) {
+                    velocityTracker!!.addMovement(motionEvent)
+                    velocityTracker!!.computeCurrentVelocity(swipeThresholdDetector.velocityTrackingUnits)
+                }
+                dispatchTouchEndEvent(touchPointer.viewHolder.itemView, motionEvent)
+                if (touchPointer.isDragging && shouldPerformSwipeOutAnimation(touchPointer)) {
+                    performSwipeOutAnimation(touchPointer)
+                } else {
+                    cardAnimator.onTouchEnd(touchPointer.viewHolder.itemView)
+                }
+                handleActionUp(motionEvent)
+            }
+
+            MotionEvent.ACTION_CANCEL -> handleActionCancel(motionEvent)
+        }
+    }
+
+    /**
+     * 设置预滑动监听器
+     * @param listener 预滑动监听器
+     */
+    fun setPreSwipeListener(listener: CardStackSwipeHelper.OnPreSwipeListener) {
+        this.preSwipeListener = listener
+    }
+
+    /**
+     * 取消选择视图持有者
+     * @param shouldPublishUpdate 是否应发布更新
+     */
+    fun unselectViewHolder(shouldPublishUpdate: Boolean) {
+        val touchPointer = this.activeTouchPointer
         if (touchPointer != null) {
-            this.b0.startRecoverAnimation(touchPointer.getViewHolder(), getRecyclerView(), this.activeTouchPointer.getFirstTouchPoint());
+            this.activeTouchPointer = null
+            releaseVelocityTracker()
+            allowParentTouchIntercept()
         }
-        unselectViewHolder(false);
     }
 
-    @NonNull
-    protected TouchPointer newTouchPointer(@NonNull RecyclerView.ViewHolder viewHolder, @NonNull MotionEvent motionEvent, DragConstraints dragConstraints) {
-        return new TouchPointer(viewHolder, motionEvent, dragConstraints);
+    /**
+     * 取消选择视图持有者（不发布更新）
+     */
+    fun unselectViewHolderDoNotPublishUpdate() {
+        val touchPointer = this.activeTouchPointer
+        if (touchPointer != null) {
+            this.activeTouchPointer = null
+            releaseVelocityTracker()
+            recyclerView.getParent().requestDisallowInterceptTouchEvent(false)
+        }
+    }
+
+    /**
+     * 创建新的触摸指针
+     * @param viewHolder 视图持有者
+     * @param motionEvent 触摸事件
+     * @param dragConstraints 拖拽约束
+     * @return 新的触摸指针
+     */
+    protected fun newTouchPointer(viewHolder: RecyclerView.ViewHolder, motionEvent: MotionEvent, dragConstraints: DragConstraints?): TouchPointer {
+        return TouchPointer(viewHolder, motionEvent, dragConstraints)
+    }
+
+    companion object {
+        private val DEFAULT_PRE_SWIPE_LISTENER: CardStackSwipeHelper.OnPreSwipeListener = DefaultPreSwipeListener()
     }
 }

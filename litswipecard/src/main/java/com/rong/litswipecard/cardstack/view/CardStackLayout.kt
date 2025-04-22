@@ -1,241 +1,446 @@
-package com.rong.litswipecard.cardstack.view;
+package com.rong.litswipecard.cardstack.view
 
-import android.content.Context;
-import android.util.AttributeSet;
-import android.view.MotionEvent;
-import android.view.View;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.RecyclerView;
-import com.rong.litswipecard.cardstack.cardstack.CardStackLayoutManager;
-import com.rong.litswipecard.cardstack.cardstack.CardStackSwipeHelper;
-import com.rong.litswipecard.cardstack.cardstack.cardtransformer.CardTransforms;
-import com.rong.litswipecard.cardstack.cardstack.cardtransformer.DefaultCardTransforms;
-import com.rong.litswipecard.cardstack.model.Card;
-import com.rong.litswipecard.cardstack.model.SwipeDirection;
-import java.util.Iterator;
-import java.util.concurrent.CopyOnWriteArrayList;
-import timber.log.Timber;
+import android.content.Context
+import android.util.AttributeSet
+import android.view.MotionEvent
+import android.view.View
+import androidx.recyclerview.widget.RecyclerView
+import com.rong.litswipecard.cardstack.cardstack.CardStackLayoutManager
+import com.rong.litswipecard.cardstack.cardstack.CardStackSwipeHelper
+import com.rong.litswipecard.cardstack.cardstack.cardtransformer.CardTransforms
+import com.rong.litswipecard.cardstack.cardstack.cardtransformer.DefaultCardTransforms
+import com.rong.litswipecard.cardstack.model.Card
+import com.rong.litswipecard.cardstack.model.SwipeDirection
+import timber.log.Timber
+import java.util.concurrent.CopyOnWriteArrayList
 
-/* loaded from: classes7.dex */
-public class CardStackLayout extends CardCollectionLayout {
-    private final CardStackSwipeHelper N1;
-    private final CardStackLayoutManager O1;
-    private OnCardPresentedListener P1;
-    private CopyOnWriteArrayList Q1;
-    private CardTransforms R1;
+/**
+ * 卡片堆叠布局
+ * 实现卡片堆叠效果的视图控件，继承自CardCollectionLayout
+ */
+class CardStackLayout @JvmOverloads constructor(context: Context, attributeSet: AttributeSet? = null) : CardCollectionLayout(context, attributeSet) {
+    /**
+     * 卡片堆叠滑动辅助器
+     */
+    private val swipeHelper: CardStackSwipeHelper
 
-    public interface CardRewindAnimationStateListener {
-        void onRewindAnimationEnded(View view);
+    /**
+     * 卡片堆叠布局管理器
+     */
+    private val layoutManager: CardStackLayoutManager
 
-        void onRewindAnimationProgress(View view, float f);
+    /**
+     * 卡片呈现监听器
+     */
+    private var cardPresentedListener: OnCardPresentedListener? = null
 
-        void onRewindAnimationStarted(View view);
-    }
+    /**
+     * 触摸事件监听器列表
+     */
+    private val dispatchTouchEventListeners: CopyOnWriteArrayList<OnDispatchTouchEventListener?>
 
-    public interface OnCardPairStateChangeListener {
-        void onPairCreated(View view, View view2);
-
-        void onPairDestroyed(View view, View view2);
-    }
-
-    public interface OnCardPresentedListener {
-        void onCardPresented(@NonNull Card card, @NonNull View view);
-    }
-
-    public interface OnDispatchTouchEventListener {
-        boolean onDispatchTouchEvent(MotionEvent motionEvent);
-    }
-
-    public interface OnTopCardMovedListener {
-        void onTopCardMoveEnded(boolean z);
-
-        void onTopCardMoveStarted();
-
-        void onTopCardMoved(float f, float f2, float f3, View view, SwipeDirection swipeDirection, boolean z);
-    }
-
-    class a implements CardStackSwipeHelper.OnPreSwipeListener {
-        final /* synthetic */ OnPreSwipeListener a;
-
-        a(OnPreSwipeListener onPreSwipeListener) {
-            this.a = onPreSwipeListener;
+    /**
+     * 卡片变换器
+     */
+    var cardTransforms: CardTransforms = DefaultCardTransforms()
+        set(value) {
+            field = value
+            invalidate()
         }
 
-        @Override // com.tinder.cardstack.cardstack.CardStackSwipeHelper.OnPreSwipeListener
-        public boolean onPreSwipe(int i, SwipeDirection swipeDirection) {
-            if (i >= 0) {
-                return this.a.onPreSwipe(CardStackLayout.this.getAdapter().get(i), swipeDirection);
+    /**
+     * 卡片回退动画状态监听器接口
+     */
+    interface CardRewindAnimationStateListener {
+        /**
+         * 当回退动画结束时调用
+         *
+         * @param view 执行回退动画的视图
+         */
+        fun onRewindAnimationEnded(view: View?)
+
+        /**
+         * 当回退动画进行中时调用
+         *
+         * @param view 执行回退动画的视图
+         * @param progress 动画进度(0-1)
+         */
+        fun onRewindAnimationProgress(view: View?, progress: Float)
+
+        /**
+         * 当回退动画开始时调用
+         *
+         * @param view 执行回退动画的视图
+         */
+        fun onRewindAnimationStarted(view: View?)
+    }
+
+    /**
+     * 卡片对状态变化监听器接口
+     */
+    interface OnCardPairStateChangeListener {
+        /**
+         * 当创建卡片对时调用
+         *
+         * @param topView 顶部卡片视图
+         * @param bottomView 底部卡片视图
+         */
+        fun onPairCreated(topView: View?, bottomView: View?)
+
+        /**
+         * 当销毁卡片对时调用
+         *
+         * @param topView 顶部卡片视图
+         * @param bottomView 底部卡片视图
+         */
+        fun onPairDestroyed(topView: View?, bottomView: View?)
+    }
+
+    /**
+     * 卡片呈现监听器接口
+     */
+    interface OnCardPresentedListener {
+        /**
+         * 当卡片被呈现时调用
+         *
+         * @param card 被呈现的卡片
+         * @param view 卡片对应的视图
+         */
+        fun onCardPresented(card: Card<*>, view: View)
+    }
+
+    /**
+     * 触摸事件分发监听器接口
+     */
+    interface OnDispatchTouchEventListener {
+        /**
+         * 当触摸事件被分发时调用
+         *
+         * @param event 触摸事件
+         * @return 是否消费此事件
+         */
+        fun onDispatchTouchEvent(event: MotionEvent?): Boolean
+    }
+
+    /**
+     * 顶部卡片移动监听器接口
+     */
+    interface OnTopCardMovedListener {
+        /**
+         * 当顶部卡片移动结束时调用
+         *
+         * @param thresholdExceeded 是否超过阈值
+         */
+        fun onTopCardMoveEnded(thresholdExceeded: Boolean)
+
+        /**
+         * 当顶部卡片开始移动时调用
+         */
+        fun onTopCardMoveStarted()
+
+        /**
+         * 当顶部卡片移动过程中调用
+         *
+         * @param translationX X轴移动距离
+         * @param translationY Y轴移动距离
+         * @param rotation 旋转角度
+         * @param view 卡片视图
+         * @param swipeDirection 滑动方向
+         * @param thresholdExceeded 是否超过阈值
+         */
+        fun onTopCardMoved(translationX: Float, translationY: Float, rotation: Float, view: View?, swipeDirection: SwipeDirection?, thresholdExceeded: Boolean)
+    }
+
+    /**
+     * 滑动前监听器适配器
+     */
+    internal inner class PreSwipeListenerAdapter(private val listener: OnPreSwipeListener) : CardStackSwipeHelper.OnPreSwipeListener {
+        override fun onPreSwipe(position: Int, swipeDirection: SwipeDirection): Boolean {
+            if (position >= 0) {
+                return listener.onPreSwipe(this@CardStackLayout.adapter[position], swipeDirection)
             }
-            Timber.w("Invalid adapter position:" + i, new Object[0]);
-            return false;
+            Timber.w("Invalid adapter position:$position", arrayOfNulls<Any>(0))
+            return false
         }
     }
 
-    private class b implements CardStackLayoutManager.OnCardPresentedListener {
-        private b() {
-        }
-
-        @Override // com.tinder.cardstack.cardstack.CardStackLayoutManager.OnCardPresentedListener
-        public void onCardPresented(View view) {
-            int adapterPosition = CardStackLayout.this.getChildViewHolder(view).getAdapterPosition();
-            if (CardStackLayout.this.P1 != null) {
-                CardStackLayout.this.P1.onCardPresented(CardStackLayout.this.getAdapter().get(adapterPosition), view);
+    /**
+     * 卡片呈现监听器实现
+     */
+    private inner class CardPresentedListenerImpl() : CardStackLayoutManager.OnCardPresentedListener {
+        override fun onCardPresented(view: View) {
+            val adapterPosition = getChildViewHolder(view).adapterPosition
+            if (this@CardStackLayout.cardPresentedListener != null) {
+                cardPresentedListener!!.onCardPresented(this@CardStackLayout.adapter[adapterPosition], view)
             }
         }
 
-        /* synthetic */ b(CardStackLayout cardStackLayout, a aVar) {
-            this();
+        /**
+         * 合成构造函数
+         */
+        /* synthetic */
+        constructor(cardStackLayout: CardStackLayout?, adapter: PreSwipeListenerAdapter?) : this()
+    }
+
+    /**
+     * 添加卡片装饰监听器
+     *
+     * @param cardDecorationListener 卡片装饰监听器
+     */
+    fun addCardDecorationListener(cardDecorationListener: CardDecorationListener) {
+        swipeHelper.addCardDecorationListener(cardDecorationListener)
+    }
+
+    /**
+     * 添加卡片对状态变化监听器
+     *
+     * @param onCardPairStateChangeListener 卡片对状态变化监听器
+     */
+    fun addOnCardPairStateChangeListener(onCardPairStateChangeListener: OnCardPairStateChangeListener) {
+        swipeHelper.addOnCardPairStateChangeListener(onCardPairStateChangeListener)
+    }
+
+    /**
+     * 添加子视图附加状态变化后布局监听器
+     *
+     * @param onChildAttachStateChangePostLayoutListeners 子视图附加状态变化后布局监听器
+     */
+    fun addOnChildAttachStateChangeListenerPostLayout(onChildAttachStateChangePostLayoutListeners: OnChildAttachStateChangePostLayoutListeners) {
+        layoutManager.addOnChildAttachStateChangeListenerPostLayout(onChildAttachStateChangePostLayoutListeners)
+    }
+
+    /**
+     * 添加触摸事件分发监听器
+     *
+     * @param onDispatchTouchEventListener 触摸事件分发监听器
+     */
+    fun addOnDispatchTouchEventListener(onDispatchTouchEventListener: OnDispatchTouchEventListener) {
+        dispatchTouchEventListeners.add(onDispatchTouchEventListener)
+    }
+
+    /**
+     * 添加顶部卡片移动监听器
+     *
+     * @param onTopCardMovedListener 顶部卡片移动监听器
+     */
+    fun addTopCardMovedListener(onTopCardMovedListener: OnTopCardMovedListener) {
+        swipeHelper.addTopCardMovedListener(onTopCardMovedListener)
+    }
+
+    /**
+     * 检查新插入是否影响已冻结的卡片
+     *
+     * @param startIndex 开始插入的位置
+     * @param insertCount 插入的数量
+     */
+    override fun checkIfNewInsertsAffectFrozenCards(startIndex: Int, insertCount: Int) {
+        if (swipeHelper.checkIfNewInsertsAffectFrozenCards(startIndex, insertCount)) {
+            revertFrozenAnimatingCards()
         }
     }
 
-    public CardStackLayout(Context context) {
-        this(context, null);
-    }
-
-    public void addCardDecorationListener(@NonNull CardDecorationListener cardDecorationListener) {
-        this.N1.addCardDecorationListener(cardDecorationListener);
-    }
-
-    public void addOnCardPairStateChangeListener(@NonNull OnCardPairStateChangeListener onCardPairStateChangeListener) {
-        this.N1.addOnCardPairStateChangeListener(onCardPairStateChangeListener);
-    }
-
-    public void addOnChildAttachStateChangeListenerPostLayout(@NonNull OnChildAttachStateChangePostLayoutListeners onChildAttachStateChangePostLayoutListeners) {
-        this.O1.addOnChildAttachStateChangeListenerPostLayout(onChildAttachStateChangePostLayoutListeners);
-    }
-
-    public void addOnDispatchTouchEventListener(@NonNull OnDispatchTouchEventListener onDispatchTouchEventListener) {
-        this.Q1.add(onDispatchTouchEventListener);
-    }
-
-    public void addTopCardMovedListener(@NonNull OnTopCardMovedListener onTopCardMovedListener) {
-        this.N1.addTopCardMovedListener(onTopCardMovedListener);
-    }
-
-    @Override // com.tinder.cardstack.view.CardCollectionLayout
-    protected void checkIfNewInsertsAffectFrozenCards(int i, int i2) {
-        if (this.N1.checkIfNewInsertsAffectFrozenCards(i, i2)) {
-            revertFrozenAnimatingCards();
-        }
-    }
-
-    @Override // android.view.ViewGroup, android.view.View
-    public boolean dispatchTouchEvent(MotionEvent motionEvent) {
-        Iterator it2 = this.Q1.iterator();
-        while (it2.hasNext()) {
-            if (((OnDispatchTouchEventListener) it2.next()).onDispatchTouchEvent(motionEvent)) {
-                return true;
+    /**
+     * 分发触摸事件
+     *
+     * @param event 触摸事件
+     * @return 是否消费此事件
+     */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        val it: Iterator<OnDispatchTouchEventListener?> = dispatchTouchEventListeners.iterator()
+        while (it.hasNext()) {
+            if (it.next()!!.onDispatchTouchEvent(event)) {
+                return true
             }
         }
-        return super.dispatchTouchEvent(motionEvent);
+        return super.dispatchTouchEvent(event)
     }
 
-    public void freezeAnimatingCards() {
-        this.N1.pauseAnimations();
+    /**
+     * 冻结正在动画的卡片
+     */
+    fun freezeAnimatingCards() {
+        swipeHelper.pauseAnimations()
     }
 
-    @NonNull
-    public CardTransforms getCardTransforms() {
-        return this.R1;
+    /**
+     * 检查是否有冻结的正在动画的卡片
+     *
+     * @return 是否有冻结的正在动画的卡片
+     */
+    fun hasFrozenAnimatingCards(): Boolean {
+        return swipeHelper.hasFrozenAnimatingCards()
     }
 
-    public boolean hasFrozenAnimatingCards() {
-        return this.N1.hasFrozenAnimatingCards();
+    /**
+     * 当大小变化时调用
+     *
+     * @param width 新宽度
+     * @param height 新高度
+     * @param oldWidth 旧宽度
+     * @param oldHeight 旧高度
+     */
+    override fun onSizeChanged(width: Int, height: Int, oldWidth: Int, oldHeight: Int) {
+        super.onSizeChanged(width, height, oldWidth, oldHeight)
+        layoutManager.onSizeChanged(width, height, oldWidth, oldHeight)
     }
 
-    @Override // androidx.recyclerview.widget.RecyclerView, android.view.View
-    protected void onSizeChanged(int i, int i2, int i3, int i4) {
-        super.onSizeChanged(i, i2, i3, i4);
-        this.O1.onSizeChanged(i, i2, i3, i4);
+    /**
+     * 移除卡片装饰监听器
+     *
+     * @param cardDecorationListener 要移除的卡片装饰监听器
+     */
+    fun removeCardDecorationListener(cardDecorationListener: CardDecorationListener) {
+        swipeHelper.removeCardDecorationListener(cardDecorationListener)
     }
 
-    public void removeCardDecorationListener(@NonNull CardDecorationListener cardDecorationListener) {
-        this.N1.removeCardDecorationListener(cardDecorationListener);
+    /**
+     * 移除卡片回退动画状态监听器
+     */
+    fun removeCardRewindAnimationStateListener() {
+        swipeHelper.removeCardRewindAnimationStateListener()
     }
 
-    public void removeCardRewindAnimationStateListener() {
-        this.N1.removeCardRewindAnimationStateListener();
+    /**
+     * 移除卡片对状态变化监听器
+     *
+     * @param onCardPairStateChangeListener 要移除的卡片对状态变化监听器
+     */
+    fun removeOnCardPairStateChangeListener(onCardPairStateChangeListener: OnCardPairStateChangeListener) {
+        swipeHelper.removeOnCardPairStateChangeListener(onCardPairStateChangeListener)
     }
 
-    public void removeOnCardPairStateChangeListener(@NonNull OnCardPairStateChangeListener onCardPairStateChangeListener) {
-        this.N1.removeOnCardPairStateChangeListener(onCardPairStateChangeListener);
+    /**
+     * 移除子视图附加状态变化后布局监听器
+     *
+     * @param onChildAttachStateChangePostLayoutListeners 要移除的子视图附加状态变化后布局监听器
+     */
+    fun removeOnChildAttachStateChangeListenerPostLayout(onChildAttachStateChangePostLayoutListeners: OnChildAttachStateChangePostLayoutListeners) {
+        layoutManager.removeOnChildAttachStateChangeListenerPostLayout(onChildAttachStateChangePostLayoutListeners)
     }
 
-    public void removeOnChildAttachStateChangeListenerPostLayout(@NonNull OnChildAttachStateChangePostLayoutListeners onChildAttachStateChangePostLayoutListeners) {
-        this.O1.removeOnChildAttachStateChangeListenerPostLayout(onChildAttachStateChangePostLayoutListeners);
+    /**
+     * 移除触摸事件分发监听器
+     *
+     * @param onDispatchTouchEventListener 要移除的触摸事件分发监听器
+     */
+    fun removeOnDispatchTouchEventListener(onDispatchTouchEventListener: OnDispatchTouchEventListener) {
+        dispatchTouchEventListeners.remove(onDispatchTouchEventListener)
     }
 
-    public void removeOnDispatchTouchEventListener(@NonNull OnDispatchTouchEventListener onDispatchTouchEventListener) {
-        this.Q1.remove(onDispatchTouchEventListener);
+    /**
+     * 移除顶部卡片移动监听器
+     *
+     * @param onTopCardMovedListener 要移除的顶部卡片移动监听器
+     */
+    fun removeTopCardMovedListener(onTopCardMovedListener: OnTopCardMovedListener) {
+        swipeHelper.removeTopCardMovedListener(onTopCardMovedListener)
     }
 
-    public void removeTopCardMovedListener(@NonNull OnTopCardMovedListener onTopCardMovedListener) {
-        this.N1.removeTopCardMovedListener(onTopCardMovedListener);
+    /**
+     * 恢复冻结的正在动画的卡片
+     */
+    fun resumeFrozenAnimatingCards() {
+        swipeHelper.resumePausedAnimations()
     }
 
-    public void resumeFrozenAnimatingCards() {
-        this.N1.resumePausedAnimations();
+    /**
+     * 回退冻结的正在动画的卡片
+     */
+    fun revertFrozenAnimatingCards() {
+        swipeHelper.revertPausedAnimations()
     }
 
-    public void revertFrozenAnimatingCards() {
-        this.N1.revertPausedAnimations();
+    /**
+     * 回退最后一张动画的卡片
+     *
+     * @return 是否成功回退
+     */
+    fun revertLastAnimatedCard(): Boolean {
+        return swipeHelper.revertLastCardAnimation()
     }
 
-    public boolean revertLastAnimatedCard() {
-        return this.N1.revertLastCardAnimation();
+    /**
+     * 设置卡片回退动画状态监听器
+     *
+     * @param cardRewindAnimationStateListener 卡片回退动画状态监听器
+     */
+    fun setCardRewindAnimationStateListener(cardRewindAnimationStateListener: CardRewindAnimationStateListener) {
+        swipeHelper.setCardRewindAnimationStateListener(cardRewindAnimationStateListener)
     }
 
-    public void setCardRewindAnimationStateListener(@NonNull CardRewindAnimationStateListener cardRewindAnimationStateListener) {
-        this.N1.setCardRewindAnimationStateListener(cardRewindAnimationStateListener);
-    }
-
-    public void setCardTransforms(@NonNull CardTransforms cardTransforms) {
-        this.R1 = cardTransforms;
-        invalidate();
-    }
-
-    @Override // androidx.recyclerview.widget.RecyclerView
-    public void setLayoutManager(@NonNull RecyclerView.LayoutManager layoutManager) {
-        if (layoutManager instanceof CardStackLayoutManager) {
-            super.setLayoutManager(layoutManager);
-            return;
+    /**
+     * 设置布局管理器
+     *
+     * @param layoutManager 布局管理器
+     */
+    override fun setLayoutManager(layoutManager: RecyclerView.LayoutManager?) {
+        if (layoutManager is CardStackLayoutManager) {
+            super.setLayoutManager(layoutManager)
+            return
         }
-        throw new IllegalStateException("LayoutManager must extend from " + CardStackLayoutManager.class);
+        throw IllegalStateException("LayoutManager must extend from " + CardStackLayoutManager::class.java)
     }
 
-    public void setOnCardPresentedListener(@Nullable OnCardPresentedListener onCardPresentedListener) {
-        this.P1 = onCardPresentedListener;
+    /**
+     * 设置卡片呈现监听器
+     *
+     * @param onCardPresentedListener 卡片呈现监听器
+     */
+    fun setOnCardPresentedListener(onCardPresentedListener: OnCardPresentedListener?) {
+        this.cardPresentedListener = onCardPresentedListener
     }
 
-    @Override // com.tinder.cardstack.view.CardCollectionLayout
-    public void setOnPreSwipeListener(@NonNull OnPreSwipeListener onPreSwipeListener) {
-        this.N1.setOnPreSwipeListener(new a(onPreSwipeListener));
+    /**
+     * 设置卡片滑动前监听器
+     *
+     * @param onPreSwipeListener 卡片滑动前监听器
+     */
+    override fun setOnPreSwipeListener(onPreSwipeListener: OnPreSwipeListener) {
+        swipeHelper.setOnPreSwipeListener(PreSwipeListenerAdapter(onPreSwipeListener))
     }
 
-    public CardStackLayout(Context context, @Nullable AttributeSet attributeSet) {
-        super(context, attributeSet);
-        this.R1 = new DefaultCardTransforms();
-        this.Q1 = new CopyOnWriteArrayList();
-        setClipChildren(false);
-        setItemAnimator(null);
-        RecyclerView.Adapter cardViewAdapter = new CardViewAdapter();
-        cardViewAdapter.setHasStableIds(false);
-        setAdapter(cardViewAdapter);
-        CardStackLayoutManager cardStackLayoutManager = new CardStackLayoutManager(this);
-        this.O1 = cardStackLayoutManager;
-        cardStackLayoutManager.setOnCardPresentedListener(new b(this, null));
-        setLayoutManager(cardStackLayoutManager);
-        this.N1 = new CardStackSwipeHelper(this);
+    /**
+     * 构造函数
+     *
+     * @param context 上下文
+     * @param attributeSet 属性集
+     */
+    /**
+     * 构造函数
+     *
+     * @param context 上下文
+     */
+    init {
+        this.dispatchTouchEventListeners = CopyOnWriteArrayList<OnDispatchTouchEventListener?>()
+        clipChildren = false
+        itemAnimator = null
+        val cardViewAdapter = CardViewAdapter<Card<*>>()
+        cardViewAdapter.setHasStableIds(false)
+        setAdapter(cardViewAdapter)
+        val cardStackLayoutManager: CardStackLayoutManager = CardStackLayoutManager(this)
+        this.layoutManager = cardStackLayoutManager
+        cardStackLayoutManager.setOnCardPresentedListener(CardPresentedListenerImpl(this, null))
+        setLayoutManager(cardStackLayoutManager)
+        this.swipeHelper = CardStackSwipeHelper(this)
     }
 
-    @Override // com.tinder.cardstack.view.CardCollectionLayout
-    public void addCardDecorationListener(@NonNull View view, @NonNull CardDecorationListener cardDecorationListener) {
-        this.N1.addCardDecorationListener(view, cardDecorationListener);
+    /**
+     * 添加卡片装饰监听器
+     *
+     * @param view 目标视图
+     * @param cardDecorationListener 卡片装饰监听器
+     */
+    override fun addCardDecorationListener(view: View, cardDecorationListener: CardDecorationListener) {
+        swipeHelper.addCardDecorationListener(view, cardDecorationListener)
     }
 
-    @Override // com.tinder.cardstack.view.CardCollectionLayout
-    public void removeCardDecorationListener(@NonNull View view, @NonNull CardDecorationListener cardDecorationListener) {
-        this.N1.removeCardDecorationListener(view, cardDecorationListener);
+    /**
+     * 移除卡片装饰监听器
+     *
+     * @param view 目标视图
+     * @param cardDecorationListener 要移除的卡片装饰监听器
+     */
+    override fun removeCardDecorationListener(view: View, cardDecorationListener: CardDecorationListener) {
+        swipeHelper.removeCardDecorationListener(view, cardDecorationListener)
     }
 }

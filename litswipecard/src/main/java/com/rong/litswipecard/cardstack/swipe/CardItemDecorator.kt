@@ -1,136 +1,230 @@
-package com.rong.litswipecard.cardstack.swipe;
+package com.rong.litswipecard.cardstack.swipe
 
-import android.graphics.Canvas;
-import android.view.View;
-import android.view.ViewGroup;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.view.ViewCompat;
-import androidx.recyclerview.widget.RecyclerView;
-import com.rong.litswipecard.cardstack.cardstack.SwipeOutCardAnimation;
-import com.tinder.cardstack.model.SwipeDirection;
-import com.tinder.cardstack.swipe.CardAnimation;
-import com.tinder.cardstack.view.CardDecorationListener;
-import java.util.Iterator;
+import android.graphics.Canvas
+import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.ViewCompat
+import androidx.recyclerview.widget.RecyclerView
+import com.rong.litswipecard.cardstack.view.CardDecorationListener
+import com.rong.litswipecard.cardstack.model.SwipeDirection
+import com.rong.litswipecard.cardstack.cardstack.SwipeOutCardAnimation
 
-/* loaded from: classes7.dex */
-public abstract class CardItemDecorator extends RecyclerView.ItemDecoration {
-    private static CardDecorationListener c0 = new a();
-    private final CardAnimator a0;
-    private CardDecorationListener b0 = c0;
+/**
+ * 卡片项装饰器
+ * 负责处理卡片的视觉效果装饰和动画
+ */
+abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : RecyclerView.ItemDecoration() {
+    private var decorationListener: CardDecorationListener = defaultListener
 
-    class a implements CardDecorationListener {
-        a() {
+    /**
+     * 空实现的装饰监听器
+     */
+    internal class EmptyDecorationListener : CardDecorationListener {
+        override fun onDecorationDraw(
+            canvas: Canvas,
+            view: View,
+            viewGroup: ViewGroup,
+            translationX: Float,
+            translationY: Float,
+            rotation: Float,
+            swipeDirection: SwipeDirection,
+            isMoving: Boolean,
+            isThresholdCrossed: Boolean
+        ) {
+            // 空实现
         }
 
-        @Override // com.tinder.cardstack.view.CardDecorationListener
-        public void onDecorationDraw(Canvas canvas, View view, ViewGroup viewGroup, float f, float f2, float f3, SwipeDirection swipeDirection, boolean z, boolean z2) {
+        override fun onDecorationDrawOver(
+            canvas: Canvas,
+            view: View,
+            viewGroup: ViewGroup,
+            translationX: Float,
+            translationY: Float,
+            rotation: Float,
+            swipeDirection: SwipeDirection,
+            isMoving: Boolean,
+            isThresholdCrossed: Boolean
+        ) {
+            // 空实现
         }
+    }
 
-        @Override // com.tinder.cardstack.view.CardDecorationListener
-        public void onDecorationDrawOver(Canvas canvas, View view, ViewGroup viewGroup, float f, float f2, float f3, SwipeDirection swipeDirection, boolean z, boolean z2) {
+    /**
+     * 应用变换和旋转的装饰
+     */
+    private fun applyTransformWithRotation(canvas: Canvas, view: View, recyclerView: RecyclerView, translationX: Float, translationY: Float, alpha: Float, rotation: Float, isRecovering: Boolean, isThresholdCrossed: Boolean) {
+        ViewCompat.setTranslationX(view, translationX)
+        ViewCompat.setTranslationY(view, translationY)
+        ViewCompat.setRotation(view, rotation)
+        if (ViewCompat.getAlpha(view) != alpha) {
+            ViewCompat.setAlpha(view, alpha)
         }
+        applyDecorationDraw(canvas, view, recyclerView, translationX, translationY, rotation, isRecovering, isThresholdCrossed)
     }
 
-    public CardItemDecorator(@NonNull CardAnimator cardAnimator) {
-        this.a0 = cardAnimator;
-    }
-
-    private void a(Canvas canvas, View view, RecyclerView recyclerView, float f, float f2, float f3, float f4, boolean z, boolean z2) {
-        ViewCompat.setTranslationX(view, f);
-        ViewCompat.setTranslationY(view, f2);
-        ViewCompat.setRotation(view, f4);
-        if (ViewCompat.getAlpha(view) != f3) {
-            ViewCompat.setAlpha(view, f3);
+    /**
+     * 应用变换但不旋转的装饰
+     */
+    private fun applyTransformWithoutRotation(canvas: Canvas, view: View, recyclerView: RecyclerView, translationX: Float, translationY: Float, alpha: Float, isRecovering: Boolean, isThresholdCrossed: Boolean) {
+        ViewCompat.setTranslationX(view, translationX)
+        ViewCompat.setTranslationY(view, translationY)
+        if (ViewCompat.getAlpha(view) != alpha) {
+            ViewCompat.setAlpha(view, alpha)
         }
-        d(canvas, view, recyclerView, f, f2, f4, z, z2);
+        applyDecorationDraw(canvas, view, recyclerView, translationX, translationY, ViewCompat.getRotation(view), isRecovering, isThresholdCrossed)
     }
 
-    private void b(Canvas canvas, View view, RecyclerView recyclerView, float f, float f2, float f3, boolean z, boolean z2) {
-        ViewCompat.setTranslationX(view, f);
-        ViewCompat.setTranslationY(view, f2);
-        if (ViewCompat.getAlpha(view) != f3) {
-            ViewCompat.setAlpha(view, f3);
-        }
-        d(canvas, view, recyclerView, f, f2, ViewCompat.getRotation(view), z, z2);
+    /**
+     * 应用装饰绘制结束
+     */
+    private fun applyDecorationDrawOver(canvas: Canvas, view: View, viewGroup: ViewGroup, translationX: Float, translationY: Float, rotation: Float, isRecovering: Boolean, isThresholdCrossed: Boolean) {
+        decorationListener.onDecorationDrawOver(canvas, view, viewGroup, translationX, translationY, rotation, getDirectionFromMovement(translationX, translationY), isRecovering, isThresholdCrossed)
     }
 
-    private void c(Canvas canvas, View view, ViewGroup viewGroup, float f, float f2, float f3, boolean z, boolean z2) {
-        this.b0.onDecorationDrawOver(canvas, view, viewGroup, f, f2, f3, getDirectionFromMovement(f, f2), z, z2);
+    /**
+     * 应用装饰绘制
+     */
+    private fun applyDecorationDraw(canvas: Canvas, view: View, viewGroup: ViewGroup, translationX: Float, translationY: Float, rotation: Float, isRecovering: Boolean, isThresholdCrossed: Boolean) {
+        decorationListener.onDecorationDraw(canvas, view, viewGroup, translationX, translationY, rotation, getDirectionFromMovement(translationX, translationY), isRecovering, isThresholdCrossed)
     }
 
-    private void d(Canvas canvas, View view, ViewGroup viewGroup, float f, float f2, float f3, boolean z, boolean z2) {
-        this.b0.onDecorationDraw(canvas, view, viewGroup, f, f2, f3, getDirectionFromMovement(f, f2), z, z2);
-    }
+    /**
+     * 获取当前活动的触摸指针
+     */
+    protected abstract val activeTouchPointer: TouchPointer?
 
-    @Nullable
-    protected abstract TouchPointer getActiveTouchPointer();
+    /**
+     * 从移动距离获取滑动方向
+     */
+    protected abstract fun getDirectionFromMovement(dx: Float, dy: Float): SwipeDirection
 
-    @NonNull
-    protected abstract SwipeDirection getDirectionFromMovement(float f, float f2);
+    /**
+     * 计算旋转角度
+     */
+    protected abstract fun getRotation(view: View, dx: Float, dy: Float): Float
 
-    protected abstract float getRotation(@NonNull View view, float f, float f2);
-
-    @Override // androidx.recyclerview.widget.RecyclerView.ItemDecoration
-    public void onDraw(Canvas canvas, RecyclerView recyclerView, RecyclerView.State state) {
-        super.onDraw(canvas, recyclerView, state);
-        TouchPointer activeTouchPointer = getActiveTouchPointer();
-        for (CardAnimation cardAnimation : this.a0.d()) {
-            if (activeTouchPointer != null && cardAnimation.getViewHolder() == activeTouchPointer.getViewHolder()) {
-                releaseActiveTouchPointer();
+    /**
+     * 在RecyclerView绘制期间绘制装饰
+     */
+    override fun onDraw(canvas: Canvas, recyclerView: RecyclerView, state: RecyclerView.State) {
+        super.onDraw(canvas, recyclerView, state)
+        val activeTouchPointer = activeTouchPointer
+        for (cardAnimation in cardAnimator.getActiveAnimations()) {
+            if (activeTouchPointer != null && cardAnimation.viewHolder === activeTouchPointer.viewHolder) {
+                releaseActiveTouchPointer()
             }
-            cardAnimation.o();
-            float currAlpha = cardAnimation.getCurrAlpha();
-            if (cardAnimation.getAnimationType() == CardAnimation.AnimationType.RECOVER) {
-                View view = cardAnimation.getViewHolder().itemView;
-                a(canvas, view, recyclerView, cardAnimation.getCurrX(), cardAnimation.getCurrY(), currAlpha, cardAnimation.h() ? cardAnimation.getCurrRotation() : getRotation(view, cardAnimation.getCurrX(), cardAnimation.getFirstTouchPoint().y), true, false);
-            } else if (cardAnimation instanceof SwipeOutCardAnimation) {
-                a(canvas, cardAnimation.getViewHolder().itemView, recyclerView, cardAnimation.getCurrX(), cardAnimation.getCurrY(), currAlpha, ((SwipeOutCardAnimation) cardAnimation).getCurrRotation(), false, false);
+            cardAnimation.updateProperties()
+            val currAlpha = cardAnimation.currAlpha
+            if (cardAnimation.animationType === CardAnimation.AnimationType.RECOVER) {
+                val view = cardAnimation.viewHolder.itemView
+                applyTransformWithRotation(
+                    canvas,
+                    view,
+                    recyclerView,
+                    cardAnimation.currX,
+                    cardAnimation.currY,
+                    currAlpha,
+                    if (cardAnimation.hasRotation()) cardAnimation.currRotation else getRotation(view, cardAnimation.currX, cardAnimation.firstTouchPoint?.y ?: 0f),
+                    true,
+                    false
+                )
+            } else if (cardAnimation is SwipeOutCardAnimation) {
+                applyTransformWithRotation(
+                    canvas,
+                    cardAnimation.viewHolder.itemView,
+                    recyclerView,
+                    cardAnimation.currX,
+                    cardAnimation.currY,
+                    currAlpha,
+                    cardAnimation.currRotation,
+                    false,
+                    false
+                )
             } else {
-                b(canvas, cardAnimation.getViewHolder().itemView, recyclerView, cardAnimation.getCurrX(), cardAnimation.getCurrY(), currAlpha, false, false);
+                applyTransformWithoutRotation(canvas, cardAnimation.viewHolder.itemView, recyclerView, cardAnimation.currX, cardAnimation.currY, currAlpha, false, false)
             }
-            if (cardAnimation.h() && !cardAnimation.isRunning()) {
-                cardAnimation.j(false);
+            if (cardAnimation.hasRotation() && !cardAnimation.isRunning) {
+                cardAnimation.setHasRotation(false)
             }
         }
-        TouchPointer activeTouchPointer2 = getActiveTouchPointer();
-        if (activeTouchPointer2 != null) {
-            View view2 = activeTouchPointer2.getViewHolder().itemView;
-            a(canvas, view2, recyclerView, activeTouchPointer2.b(), activeTouchPointer2.c(), view2.getAlpha(), getRotation(view2, activeTouchPointer2.b(), activeTouchPointer2.getFirstTouchPoint().y), false, true);
+        val activePointer = this.activeTouchPointer
+        if (activePointer != null) {
+            val view2 = activePointer.viewHolder.itemView
+            applyTransformWithRotation(
+                canvas,
+                view2,
+                recyclerView,
+                activePointer.dragX,
+                activePointer.dragY,
+                view2.alpha,
+                getRotation(view2, activePointer.dragX, activePointer.firstTouchPoint.y),
+                false,
+                true
+            )
         }
     }
 
-    @Override // androidx.recyclerview.widget.RecyclerView.ItemDecoration
-    public void onDrawOver(Canvas canvas, RecyclerView recyclerView, RecyclerView.State state) {
-        boolean z;
-        super.onDrawOver(canvas, recyclerView, state);
-        Iterator it2 = this.a0.d().iterator();
+    /**
+     * 在所有内容之上绘制装饰
+     */
+    override fun onDrawOver(canvas: Canvas, recyclerView: RecyclerView, state: RecyclerView.State) {
+        var isAnythingAnimating: Boolean
+        super.onDrawOver(canvas, recyclerView, state)
+        val iterator = cardAnimator.getActiveAnimations().iterator()
         while (true) {
-            if (!it2.hasNext()) {
-                z = false;
-                break;
+            if (!iterator.hasNext()) {
+                isAnythingAnimating = false
+                break
             }
-            CardAnimation cardAnimation = (CardAnimation) it2.next();
-            View view = cardAnimation.getViewHolder().itemView;
-            z = true;
-            c(canvas, view, recyclerView, ViewCompat.getTranslationX(view), ViewCompat.getTranslationY(view), ViewCompat.getRotation(view), cardAnimation.getAnimationType() == CardAnimation.AnimationType.RECOVER, false);
-            if (cardAnimation.isRunning()) {
-                break;
+            val cardAnimation = iterator.next() as CardAnimation
+            val view = cardAnimation.viewHolder.itemView
+            isAnythingAnimating = true
+            applyDecorationDrawOver(
+                canvas,
+                view,
+                recyclerView,
+                ViewCompat.getTranslationX(view),
+                ViewCompat.getTranslationY(view),
+                ViewCompat.getRotation(view),
+                cardAnimation.animationType === CardAnimation.AnimationType.RECOVER,
+                false
+            )
+            if (cardAnimation.isRunning) {
+                break
             }
         }
-        TouchPointer activeTouchPointer = getActiveTouchPointer();
-        if (activeTouchPointer != null) {
-            View view2 = activeTouchPointer.getViewHolder().itemView;
-            c(canvas, view2, recyclerView, ViewCompat.getTranslationX(view2), ViewCompat.getTranslationY(view2), getRotation(view2, activeTouchPointer.b(), activeTouchPointer.getFirstTouchPoint().y), false, true);
+        val activePointer = activeTouchPointer
+        if (activePointer != null) {
+            val view2 = activePointer.viewHolder.itemView
+            applyDecorationDrawOver(
+                canvas,
+                view2,
+                recyclerView,
+                ViewCompat.getTranslationX(view2),
+                ViewCompat.getTranslationY(view2),
+                getRotation(view2, activePointer.dragX, activePointer.firstTouchPoint.y),
+                false,
+                true
+            )
         }
-        if (z) {
-            recyclerView.invalidate();
+        if (isAnythingAnimating) {
+            recyclerView.invalidate()
         }
     }
 
-    protected abstract void releaseActiveTouchPointer();
+    /**
+     * 释放当前活动的触摸指针
+     */
+    protected abstract fun releaseActiveTouchPointer()
 
-    public void setCardDecorationListener(@NonNull CardDecorationListener cardDecorationListener) {
-        this.b0 = cardDecorationListener;
+    /**
+     * 设置卡片装饰监听器
+     */
+    fun setCardDecorationListener(cardDecorationListener: CardDecorationListener) {
+        this.decorationListener = cardDecorationListener
+    }
+
+    companion object {
+        private val defaultListener: CardDecorationListener = EmptyDecorationListener()
     }
 }

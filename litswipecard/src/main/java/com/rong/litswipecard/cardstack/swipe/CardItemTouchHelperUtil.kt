@@ -1,84 +1,141 @@
-package com.rong.litswipecard.cardstack.swipe;
+package com.rong.litswipecard.cardstack.swipe
 
-import android.view.MotionEvent;
-import android.view.VelocityTracker;
-import android.view.View;
-import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.RecyclerView;
-import com.tinder.cardstack.swipe.CardAnimation;
-import timber.log.Timber;
+import android.view.MotionEvent
+import android.view.VelocityTracker
+import android.view.View
+import androidx.recyclerview.widget.RecyclerView
+import timber.log.Timber
+import androidx.core.view.size
 
-/* loaded from: classes7.dex */
-public class CardItemTouchHelperUtil {
-    private int a(View view, RecyclerView recyclerView) {
-        int indexOfChild = recyclerView.indexOfChild(view);
+/**
+ * 卡片项触摸辅助工具类
+ * 提供卡片触摸交互相关的辅助方法
+ */
+class CardItemTouchHelperUtil {
+    /**
+     * 获取视图在RecyclerView中的索引
+     * @param view 目标视图
+     * @param recyclerView RecyclerView实例
+     * @return 视图索引，如果未找到则返回负值
+     */
+    private fun getChildViewIndex(view: View, recyclerView: RecyclerView): Int {
+        val indexOfChild: Int = recyclerView.indexOfChild(view)
         if (indexOfChild < 0) {
-            Timber.w("getChildViewIndex::for:index=" + indexOfChild + " for view: " + view, new Object[0]);
+            Timber.w("getChildViewIndex::for:index=$indexOfChild for view: $view", arrayOfNulls<Any>(0))
         }
-        return indexOfChild;
+        return indexOfChild
     }
 
-    public static boolean hitTest(View view, float f, float f2, float f3, float f4) {
-        return f >= f3 && f <= f3 + ((float) view.getWidth()) && f2 >= f4 && f2 <= f4 + ((float) view.getHeight());
+    /**
+     * 检查是否应该执行滑动动画
+     * @param touchPointer 触摸指针
+     * @param velocityTracker 速度追踪器
+     * @param swipeThresholdDetector 滑动阈值检测器
+     * @return 如果应该执行滑动动画返回true，否则返回false
+     */
+    fun shouldPerformSwipeAnimation(touchPointer: TouchPointer, velocityTracker: VelocityTracker, swipeThresholdDetector: SwipeThresholdDetector): Boolean {
+        touchPointer.pointerId
+        velocityTracker.computeCurrentVelocity(swipeThresholdDetector.velocityTrackingUnits)
+        return swipeThresholdDetector.isSwipeThresholdCrossed(
+            touchPointer.dragX,
+            touchPointer.dragY,
+            velocityTracker.xVelocity,
+            velocityTracker.yVelocity
+        )
     }
 
-    boolean b(TouchPointer touchPointer, VelocityTracker velocityTracker, SwipeThresholdDetector swipeThresholdDetector) {
-        touchPointer.a();
-        velocityTracker.computeCurrentVelocity(swipeThresholdDetector.n());
-        return swipeThresholdDetector.isSwipeThresholdCrossed(touchPointer.b(), touchPointer.c(), velocityTracker.getXVelocity(), velocityTracker.getYVelocity());
+    /**
+     * 检查移动是否低于阈值
+     * @param touchPointer 触摸指针
+     * @param swipeThresholdDetector 滑动阈值检测器
+     * @return 如果移动低于阈值返回true，否则返回false
+     */
+    fun isBelowThreshold(touchPointer: TouchPointer, swipeThresholdDetector: SwipeThresholdDetector): Boolean {
+        return swipeThresholdDetector.isBelowThreshold(touchPointer.dragX, touchPointer.dragY)
     }
 
-    boolean c(TouchPointer touchPointer, SwipeThresholdDetector swipeThresholdDetector) {
-        return swipeThresholdDetector.o(touchPointer.b(), touchPointer.c());
-    }
+    /**
+     * 寻找可选择的视图持有者
+     * @param motionEvent 触摸事件
+     * @param recyclerView RecyclerView实例
+     * @param cardAnimator 卡片动画控制器
+     * @return 视图持有者，如果未找到则返回null
+     */
+    protected fun findSelectableViewHolder(motionEvent: MotionEvent, recyclerView: RecyclerView, cardAnimator: CardAnimator): RecyclerView.ViewHolder? {
+        var cardAnimation: CardAnimation? = null
+        val x: Float = motionEvent.getX()
+        val y: Float = motionEvent.getY()
+        var childCount: Int = recyclerView.size
 
-    @Nullable
-    protected RecyclerView.ViewHolder findSelectableViewHolder(MotionEvent motionEvent, RecyclerView recyclerView, CardAnimator cardAnimator) {
-        CardAnimation findCardAnimation;
-        float x = motionEvent.getX();
-        float y = motionEvent.getY();
-        int childCount = recyclerView.getChildCount();
         do {
-            childCount--;
+            childCount--
             if (childCount >= 0) {
-                View childAt = recyclerView.getChildAt(childCount);
-                RecyclerView.ViewHolder findContainingViewHolder = recyclerView.findContainingViewHolder(childAt);
-                findCardAnimation = cardAnimator.findCardAnimation(childAt);
-                if (findCardAnimation != null) {
-                    if (hitTest(childAt, x, y, findCardAnimation.getCurrX(), findCardAnimation.getCurrY())) {
-                        if (findCardAnimation.getAnimationType() == CardAnimation.AnimationType.SWIPE_OUT) {
-                            return null;
+                val childView: View = recyclerView.getChildAt(childCount)
+                val viewHolder: RecyclerView.ViewHolder = recyclerView.findContainingViewHolder(childView)!!
+                cardAnimation = cardAnimator.findCardAnimation(childView)
+
+                if (cardAnimation != null) {
+                    if (hitTest(childView, x, y, cardAnimation.currX, cardAnimation.currY)) {
+                        if (cardAnimation.animationType === CardAnimation.AnimationType.SWIPE_OUT) {
+                            return null
                         }
-                        return findContainingViewHolder;
+                        return viewHolder
                     }
-                } else if (hitTest(childAt, x, y, childAt.getX(), childAt.getY())) {
-                    return findContainingViewHolder;
+                } else if (hitTest(childView, x, y, childView.x, childView.y)) {
+                    return viewHolder
                 }
             }
-            return null;
-        } while (findCardAnimation.getAnimationType() == CardAnimation.AnimationType.SWIPE_OUT);
-        return null;
+            return null
+        } while (cardAnimation?.animationType == CardAnimation.AnimationType.SWIPE_OUT)
+
+        return null
     }
 
-    protected boolean isReadyToAcceptSwipes(RecyclerView.ViewHolder viewHolder, RecyclerView recyclerView, CardAnimator cardAnimator) {
-        int a = a(viewHolder.itemView, recyclerView);
-        if (a < 0) {
-            Timber.w("isReadyToAcceptSwipes for index <0 " + viewHolder, new Object[0]);
-            return false;
+    /**
+     * 检查是否准备好接受滑动操作
+     * @param viewHolder 视图持有者
+     * @param recyclerView RecyclerView实例
+     * @param cardAnimator 卡片动画控制器
+     * @return 如果准备好接受滑动操作返回true，否则返回false
+     */
+    protected fun isReadyToAcceptSwipes(viewHolder: RecyclerView.ViewHolder, recyclerView: RecyclerView, cardAnimator: CardAnimator): Boolean {
+        val viewIndex = getChildViewIndex(viewHolder.itemView, recyclerView)
+        if (viewIndex < 0) {
+            Timber.w("isReadyToAcceptSwipes for index <0 $viewHolder", arrayOfNulls<Any>(0))
+            return false
         }
-        if (a < 0) {
-            return false;
+
+        if (viewIndex < 0) {
+            return false
         }
-        for (int childCount = recyclerView.getChildCount() - 1; childCount >= a; childCount--) {
-            CardAnimation findCardAnimation = cardAnimator.findCardAnimation(recyclerView.getChildAt(childCount));
-            if (findCardAnimation != null) {
-                if (findCardAnimation.getAnimationType() == CardAnimation.AnimationType.SWIPE_OUT) {
+
+        for (i in recyclerView.size - 1 downTo viewIndex) {
+            val cardAnimation: CardAnimation? = cardAnimator.findCardAnimation(recyclerView.getChildAt(i))
+            if (cardAnimation != null) {
+                if (cardAnimation.animationType === CardAnimation.AnimationType.SWIPE_OUT) {
+                    // 有正在执行滑出动画的卡片
                 }
-            } else if (childCount == a) {
-                return true;
+            } else if (i == viewIndex) {
+                return true
             }
-            return false;
+            return false
         }
-        return true;
+
+        return true
+    }
+
+    companion object {
+        /**
+         * 检查点是否在视图范围内
+         * @param view 目标视图
+         * @param x 检查点的X坐标
+         * @param y 检查点的Y坐标
+         * @param viewX 视图左上角X坐标
+         * @param viewY 视图左上角Y坐标
+         * @return 如果点在视图范围内返回true，否则返回false
+         */
+        fun hitTest(view: View, x: Float, y: Float, viewX: Float, viewY: Float): Boolean {
+            return x >= viewX && x <= viewX + (view.width.toFloat()) && y >= viewY && y <= viewY + (view.height.toFloat())
+        }
     }
 }

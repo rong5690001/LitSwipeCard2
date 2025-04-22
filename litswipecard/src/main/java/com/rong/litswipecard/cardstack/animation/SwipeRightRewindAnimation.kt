@@ -1,21 +1,27 @@
-package com.rong.litswipecard.cardstack.animation;
+package com.rong.litswipecard.cardstack.animation
 
-import com.tinder.cardstack.utils.ViewHelper;
+import com.rong.litswipecard.cardstack.utils.ViewHelper
 
-/* loaded from: classes7.dex */
-public class SwipeRightRewindAnimation extends SwipeAnimation {
-    @Override // com.tinder.cardstack.animation.SwipeAnimation
-    public float endRotation() {
-        return 0.0f;
+/**
+ * 向右滑动回弹动画实现
+ * 定义了卡片从右侧回弹到中心位置的动画参数
+ */
+open class SwipeRightRewindAnimation : SwipeAnimation() {
+    // com.rong.litswipecard.cardstack.animation.SwipeAnimation
+    override fun endRotation(): Float {
+        // 回弹结束时没有旋转
+        return 0.0f
     }
 
-    @Override // com.tinder.cardstack.animation.SwipeAnimation
-    public float startRotation() {
-        return 18.0f;
+    // com.rong.litswipecard.cardstack.animation.SwipeAnimation
+    override fun startRotation(): Float {
+        // 回弹开始时的旋转角度（顺时针18度）
+        return 18.0f
     }
 
-    @Override // com.tinder.cardstack.animation.SwipeAnimation
-    public float startX() {
-        return ViewHelper.getScreenWidth();
+    // com.rong.litswipecard.cardstack.animation.SwipeAnimation
+    override fun startX(): Float {
+        // 回弹开始时位于屏幕右侧
+        return ViewHelper.screenWidth
     }
 }

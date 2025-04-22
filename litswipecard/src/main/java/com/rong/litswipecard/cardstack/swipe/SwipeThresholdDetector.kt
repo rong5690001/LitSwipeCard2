@@ -1,197 +1,317 @@
-package com.rong.litswipecard.cardstack.swipe;
+package com.rong.litswipecard.cardstack.swipe
 
-import android.content.Context;
-import android.view.View;
-import android.view.ViewConfiguration;
-import androidx.annotation.NonNull;
-import com.rong.litswipecard.cardstack.R;
-import com.tinder.cardstack.model.SwipeDirection;
-import com.rong.litswipecard.cardstack.utils.ViewHelper;
+import android.content.Context
+import android.view.View
+import android.view.ViewConfiguration
+import com.rong.litswipecard.R
+import com.rong.litswipecard.cardstack.model.SwipeDirection
+import com.rong.litswipecard.cardstack.utils.ViewHelper
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.sqrt
 
-/* loaded from: classes7.dex */
-public class SwipeThresholdDetector {
-    private final float a;
-    private final float b;
-    private final float c;
-    private final float d;
+/**
+ * 滑动阈值检测器
+ * 负责检测和判断滑动手势是否达到触发阈值
+ */
+class SwipeThresholdDetector(context: Context) {
+    /**
+     * 获取滑动逃逸速度
+     * @return 滑动逃逸速度
+     */
+    private val swipeEscapeVelocity: Float // 滑动逃逸速度
 
-    static /* synthetic */ class a {
-        static final /* synthetic */ int[] a;
+    /**
+     * 获取触摸滑动阈值
+     * @return 触摸滑动阈值
+     */
+    private val touchSlop: Float // 触摸滑动阈值
 
-        static {
-            int[] iArr = new int[SwipeDirection.values().length];
-            a = iArr;
+    /**
+     * 获取最小滑动阈值
+     * @return 最小滑动阈值
+     */
+    val minThresholdForSwipe: Float // 最小滑动阈值
+    private val velocitySwipeThreshold: Float // 速度触发滑动阈值
+
+    /**
+     * 方向枚举映射助手类
+     */
+    private object DirectionOrdinalMap {
+        val DIRECTION_ORDINALS: IntArray
+
+        init {
+            val directions = IntArray(SwipeDirection.entries.size)
+            DIRECTION_ORDINALS = directions
             try {
-                iArr[SwipeDirection.LEFT.ordinal()] = 1;
-            } catch (NoSuchFieldError unused) {
+                directions[SwipeDirection.LEFT.ordinal] = 1
+            } catch (unused: NoSuchFieldError) {
             }
             try {
-                a[SwipeDirection.RIGHT.ordinal()] = 2;
-            } catch (NoSuchFieldError unused2) {
+                DIRECTION_ORDINALS[SwipeDirection.RIGHT.ordinal] = 2
+            } catch (unused2: NoSuchFieldError) {
             }
             try {
-                a[SwipeDirection.UP.ordinal()] = 3;
-            } catch (NoSuchFieldError unused3) {
+                DIRECTION_ORDINALS[SwipeDirection.UP.ordinal] = 3
+            } catch (unused3: NoSuchFieldError) {
             }
             try {
-                a[SwipeDirection.DOWN.ordinal()] = 4;
-            } catch (NoSuchFieldError unused4) {
+                DIRECTION_ORDINALS[SwipeDirection.DOWN.ordinal] = 4
+            } catch (unused4: NoSuchFieldError) {
             }
         }
     }
 
-    private static class b {
-        static float a = 290.0f;
-        static float b = 70.0f;
-        static float c = 110.0f;
-        static float d = 250.0f;
-        static float e = 75.0f;
-        static float f = 105.0f;
-        static float g = 251.0f;
-        static float h = 289.0f;
+    /**
+     * 角度常量类
+     * 定义不同方向的角度范围
+     */
+    private object AngleConstants {
+        // 右方向角度范围 (290-360度 或 0-70度)
+        var rightAngleStart = 290.0f
+            /**
+             * 获取右方向角度上限
+             * @return 右方向角度上限
+             */
+        var rightAngleEnd = 70.0f
+            /**
+             * 获取右方向角度下限
+             * @return 右方向角度下限
+             */
+        // 左方向角度范围 (110-250度)
+        var leftAngleStart = 110.0f
+            /**
+             * 获取左方向角度下限
+             * @return 左方向角度下限
+             */
+        var leftAngleEnd = 250.0f
+            /**
+             * 获取左方向角度上限
+             * @return 左方向角度上限
+             */
+        // 上方向角度范围 (75-105度)
+        var upAngleStart = 75.0f
+            /**
+             * 获取上方向角度下限
+             * @return 上方向角度下限
+             */
+        var upAngleEnd = 105.0f
+            /**
+             * 获取上方向角度上限
+             * @return 上方向角度上限
+             */
+
+        // 下方向角度范围 (251-289度)
+        var downAngleStart = 251.0f
+            /**
+             * 获取下方向角度下限
+             * @return 下方向角度下限
+             */
+        var downAngleEnd = 289.0f
+            /**
+             * 获取下方向角度上限
+             * @return 下方向角度上限
+             */
     }
 
-    public SwipeThresholdDetector(@NonNull Context context) {
-        float screenWidth = ViewHelper.getScreenWidth();
-        this.a = context.getResources().getDimension(R.dimen.fling_escape_velocity_dp) * 6.0f;
-        float f = screenWidth * 0.25f;
-        this.c = f;
-        this.d = f / 3.0f;
-        this.b = Math.max(8.0f, ViewConfiguration.get(context).getScaledTouchSlop() / 2);
+    /**
+     * 构造函数
+     * @param context 上下文
+     */
+    init {
+        val screenWidth: Float = ViewHelper.screenWidth
+        this.swipeEscapeVelocity = context.resources.getDimension(R.dimen.fling_escape_velocity_dp) * 6.0f
+        val threshold = screenWidth * 0.25f
+        this.minThresholdForSwipe = threshold
+        this.velocitySwipeThreshold = threshold / 3.0f
+        this.touchSlop = max(8.0, (ViewConfiguration.get(context).scaledTouchSlop / 2).toDouble()).toFloat()
     }
 
-    private SwipeDirection a(float f) {
-        return r(f) ? SwipeDirection.LEFT : s(f) ? SwipeDirection.RIGHT : t(f) ? SwipeDirection.UP : p(f) ? SwipeDirection.DOWN : SwipeDirection.NONE;
+    /**
+     * 从角度获取滑动方向
+     * @param angle 角度 (0-360度)
+     * @return 滑动方向
+     */
+    private fun getDirectionFromAngle(angle: Float): SwipeDirection {
+        return if (isLeftAngle(angle)) SwipeDirection.LEFT else if (isRightAngle(angle)) SwipeDirection.RIGHT else if (isUpAngle(angle)) SwipeDirection.UP else if (isDownAngle(angle)) SwipeDirection.DOWN else SwipeDirection.NONE
     }
 
-    private float c() {
-        return this.a;
+    /**
+     * 获取视图一半高度
+     * @param view 视图
+     * @return 一半高度
+     */
+    private fun getHalfHeight(view: View): Float {
+        return view.height / 2.0f
     }
 
-    private float d() {
-        return this.b;
+    /**
+     * 判断角度是否在下方向范围内
+     * @param angle 角度
+     * @return 是否是下方向
+     */
+    private fun isDownAngle(angle: Float): Boolean {
+        return angle >= AngleConstants.downAngleStart && angle <= AngleConstants.downAngleEnd
     }
 
-    private float e() {
-        return b.h;
+    /**
+     * 判断是否是水平方向滑动
+     * @param velocityX X方向速度
+     * @param velocityY Y方向速度
+     * @return 是否是水平滑动
+     */
+    private fun isHorizontalSwipe(velocityX: Float, velocityY: Float): Boolean {
+        val absVelocityX = abs(velocityX.toDouble()).toFloat()
+        return absVelocityX > swipeEscapeVelocity && absVelocityX >= abs(velocityY.toDouble())
     }
 
-    private float f() {
-        return b.g;
+    /**
+     * 判断角度是否在左方向范围内
+     * @param angle 角度
+     * @return 是否是左方向
+     */
+    private fun isLeftAngle(angle: Float): Boolean {
+        return angle >= AngleConstants.leftAngleStart && angle <= AngleConstants.leftAngleEnd
     }
 
-    private float g() {
-        return b.d;
+    /**
+     * 判断角度是否在右方向范围内
+     * @param angle 角度
+     * @return 是否是右方向
+     */
+    private fun isRightAngle(angle: Float): Boolean {
+        return angle >= AngleConstants.rightAngleStart || angle <= AngleConstants.rightAngleEnd
     }
 
-    private float h() {
-        return b.c;
+    /**
+     * 判断角度是否在上方向范围内
+     * @param angle 角度
+     * @return 是否是上方向
+     */
+    private fun isUpAngle(angle: Float): Boolean {
+        return angle >= AngleConstants.upAngleStart && angle <= AngleConstants.upAngleEnd
     }
 
-    private float i() {
-        return b.b;
+    /**
+     * 判断是否是垂直方向滑动
+     * @param velocityX X方向速度
+     * @param velocityY Y方向速度
+     * @return 是否是垂直滑动
+     */
+    private fun isVerticalSwipe(velocityX: Float, velocityY: Float): Boolean {
+        val absVelocityX = abs(velocityX.toDouble()).toFloat()
+        val absVelocityY = abs(velocityY.toDouble()).toFloat()
+        return absVelocityY > swipeEscapeVelocity && absVelocityY >= absVelocityX
     }
 
-    private float j() {
-        return b.a;
+    private val rotationFactor: Float
+        /**
+         * 获取旋转因子
+         * @return 旋转因子
+         */
+        get() = 0.03f
+
+    /**
+     * 从拖动和速度确定滑动方向
+     * @param dragX X方向拖动距离
+     * @param dragY Y方向拖动距离
+     * @param velocityX X方向速度
+     * @param velocityY Y方向速度
+     * @return 滑动方向
+     */
+    fun determineSwipeDirection(dragX: Float, dragY: Float, velocityX: Float, velocityY: Float): SwipeDirection {
+        val defaultDirection: SwipeDirection = SwipeDirection.NONE
+        val dragDirection: SwipeDirection = if (abs(dragX.toDouble()) > 0.0f || abs(dragY.toDouble()) > 0.0f) getDirectionFromAngle(getDegreeOfRotation(dragX, dragY)) else defaultDirection
+
+        val velocityDirection: SwipeDirection =
+            if (abs(velocityX.toDouble()) > 0.0f || abs(velocityY.toDouble()) > 0.0f) getDirectionFromAngle(getDegreeOfRotation(velocityX, velocityY)) else dragDirection
+
+        return if (velocityDirection !== dragDirection) defaultDirection else dragDirection
     }
 
-    private float k() {
-        return b.f;
+    /**
+     * 计算旋转角度
+     * @param x X方向
+     * @param y Y方向
+     * @return 角度 (0-360度)
+     */
+    fun getDegreeOfRotation(x: Float, y: Float): Float {
+        val degrees = Math.toDegrees(atan2(-y.toDouble(), x.toDouble())).toFloat()
+        return if (degrees < 0.0f) degrees + 360.0f else degrees
     }
 
-    private float l() {
-        return b.e;
+    /**
+     * 从移动获取滑动方向
+     * @param moveX X方向移动
+     * @param moveY Y方向移动
+     * @return 滑动方向
+     */
+    fun getDirectionFromMovement(moveX: Float, moveY: Float): SwipeDirection {
+        return if (abs(moveX.toDouble()) > 0.0f || abs(moveY.toDouble()) > 0.0f) getDirectionFromAngle(getDegreeOfRotation(moveX, moveY)) else SwipeDirection.NONE
     }
 
-    private float m(View view) {
-        return view.getHeight() / 2.0f;
+    /**
+     * 计算视图旋转角度
+     * @param view 视图
+     * @param dragX X方向拖动
+     * @param dragY Y方向拖动
+     * @return 旋转角度
+     */
+    fun getRotation(view: View, dragX: Float, dragY: Float): Float {
+        return (if (dragY < getHalfHeight(view)) 1 else -1) * dragX * rotationFactor
     }
 
-    private boolean p(float f) {
-        return f >= f() && f <= e();
-    }
+    /**
+     * 判断是否达到滑动阈值
+     * @param dragX X方向拖动
+     * @param dragY Y方向拖动
+     * @param velocityX X方向速度
+     * @param velocityY Y方向速度
+     * @return 是否达到滑动阈值
+     */
+    fun isSwipeThresholdCrossed(dragX: Float, dragY: Float, velocityX: Float, velocityY: Float): Boolean {
+        val absDragX = abs(dragX.toDouble()).toFloat()
+        val absDragY = abs(dragY.toDouble()).toFloat()
+        val isHorizontalSwipe = isHorizontalSwipe(velocityX, velocityY)
+        val isVerticalSwipe = isVerticalSwipe(velocityX, velocityY)
 
-    private boolean q(float f, float f2) {
-        float abs = Math.abs(f);
-        return abs > c() && abs >= Math.abs(f2);
-    }
+        val directionOrdinal = DirectionOrdinalMap.DIRECTION_ORDINALS[getDirectionFromAngle(getDegreeOfRotation(dragX, dragY)).ordinal]
 
-    private boolean r(float f) {
-        return f >= h() && f <= g();
-    }
-
-    private boolean s(float f) {
-        return f >= j() || f <= i();
-    }
-
-    private boolean t(float f) {
-        return f >= l() && f <= k();
-    }
-
-    private boolean u(float f, float f2) {
-        float abs = Math.abs(f);
-        float abs2 = Math.abs(f2);
-        return abs2 > c() && abs2 >= abs;
-    }
-
-    private float v() {
-        return 0.03f;
-    }
-
-    SwipeDirection b(float f, float f2, float f3, float f4) {
-        SwipeDirection swipeDirection = SwipeDirection.NONE;
-        SwipeDirection a2 = (Math.abs(f) > 0.0f || Math.abs(f2) > 0.0f) ? a(getDegreeOfRotation(f, f2)) : swipeDirection;
-        return (((Math.abs(f3) > 0.0f ? 1 : (Math.abs(f3) == 0.0f ? 0 : -1)) > 0 || (Math.abs(f4) > 0.0f ? 1 : (Math.abs(f4) == 0.0f ? 0 : -1)) > 0) ? a(getDegreeOfRotation(f3, f4)) : a2) != a2 ? swipeDirection : a2;
-    }
-
-    public float getDegreeOfRotation(float f, float f2) {
-        float degrees = (float) Math.toDegrees(Math.atan2(-f2, f));
-        return degrees < 0.0f ? degrees + 360.0f : degrees;
-    }
-
-    @NonNull
-    public SwipeDirection getDirectionFromMovement(float f, float f2) {
-        return (Math.abs(f) > 0.0f || Math.abs(f2) > 0.0f) ? a(getDegreeOfRotation(f, f2)) : SwipeDirection.NONE;
-    }
-
-    public float getMinThresholdForSwipe() {
-        return this.c;
-    }
-
-    public float getRotation(@NonNull View view, float f, float f2) {
-        return (f2 < m(view) ? 1 : -1) * f * v();
-    }
-
-    public boolean isSwipeThresholdCrossed(float f, float f2, float f3, float f4) {
-        float abs = Math.abs(f);
-        float abs2 = Math.abs(f2);
-        boolean q = q(f3, f3);
-        boolean u = u(f3, f4);
-        int i = a.a[a(getDegreeOfRotation(f, f2)).ordinal()];
-        if (i == 1 || i == 2) {
-            if (abs > getMinThresholdForSwipe()) {
-                return true;
+        if (directionOrdinal == 1 || directionOrdinal == 2) { // 左右方向
+            if (absDragX > minThresholdForSwipe) {
+                return true
             }
-            if (q && abs > this.d) {
-                return true;
+            if (isHorizontalSwipe && absDragX > this.velocitySwipeThreshold) {
+                return true
             }
-        } else if ((i == 3 || i == 4) && abs2 > abs) {
-            if (abs2 > getMinThresholdForSwipe()) {
-                return true;
+        } else if ((directionOrdinal == 3 || directionOrdinal == 4) && absDragY > absDragX) { // 上下方向
+            if (absDragY > minThresholdForSwipe) {
+                return true
             }
-            if (u && abs2 > this.d) {
-                return true;
+            if (isVerticalSwipe && absDragY > this.velocitySwipeThreshold) {
+                return true
             }
         }
-        return false;
+
+        return false
     }
 
-    int n() {
-        return 1000;
-    }
+    val velocityTrackingUnits: Int
+        /**
+         * 获取速度跟踪单位
+         * @return 速度跟踪单位
+         */
+        get() = 1000
 
-    boolean o(float f, float f2) {
-        return Math.sqrt(Math.pow((double) Math.abs(f), 2.0d) + Math.pow((double) Math.abs(f2), 2.0d)) <= ((double) d());
+    /**
+     * 判断移动是否低于阈值
+     * @param moveX X方向移动
+     * @param moveY Y方向移动
+     * @return 是否低于阈值
+     */
+    fun isBelowThreshold(moveX: Float, moveY: Float): Boolean {
+        return sqrt(abs(moveX.toDouble()).pow(2.0) + abs(moveY.toDouble()).pow(2.0)) <= (touchSlop.toDouble())
     }
 }
