@@ -14,6 +14,7 @@ import com.rong.litswipecard.cardstack.view.CardStackLayout
 import com.rong.litswipecard.cardstack.view.CardView
 import com.rong.litswipecard.cardstack.view.CardViewAdapter
 import com.rong.litswipecard.cardstack.view.CardViewHolder
+import com.rong.litswipecard.cardstack.view.OnPreSwipeListener
 import com.rong.litswipecard2.databinding.ItemCardBinding
 import timber.log.Timber
 
@@ -59,6 +60,13 @@ class MainActivity : AppCompatActivity(), CardStackLayout.OnCardPresentedListene
 
         // 添加卡片数据
         cardStackLayout.adapter.insert(0, cards)
+
+        cardStackLayout.setOnPreSwipeListener(object : OnPreSwipeListener {
+            override fun onPreSwipe(card: Card<*>, swipeDirection: SwipeDirection): Boolean {
+                return swipeDirection != SwipeDirection.NONE
+            }
+
+        })
     }
 
     /**

@@ -373,7 +373,7 @@ class CardStackLayout @JvmOverloads constructor(context: Context, attributeSet: 
      *
      * @param layoutManager 布局管理器
      */
-    override fun setLayoutManager(layoutManager: RecyclerView.LayoutManager?) {
+    override fun setLayoutManager(layoutManager: LayoutManager?) {
         if (layoutManager is CardStackLayoutManager) {
             super.setLayoutManager(layoutManager)
             return

@@ -123,6 +123,7 @@ open class CardAnimation protected constructor(
      */
     private fun updateAnimation(newFraction: Float) {
         this.fraction = newFraction
+        Timber.d("updateAnimation: fraction=%.2f, animationType=%s", newFraction, animationType)
     }
 
     /**
@@ -131,7 +132,7 @@ open class CardAnimation protected constructor(
     private fun notifyAnimationCancel(animator: Animator) {
         val iterator = listeners.iterator()
         while (iterator.hasNext()) {
-            (iterator.next() as Animator.AnimatorListener).onAnimationCancel(animator)
+            iterator.next().onAnimationCancel(animator)
         }
         listeners.clear()
     }
@@ -142,7 +143,7 @@ open class CardAnimation protected constructor(
     private fun notifyAnimationEnd(animator: Animator) {
         val iterator = listeners.iterator()
         while (iterator.hasNext()) {
-            (iterator.next() as Animator.AnimatorListener).onAnimationEnd(animator)
+            iterator.next().onAnimationEnd(animator)
         }
         listeners.clear()
     }
@@ -291,6 +292,9 @@ open class CardAnimation protected constructor(
                 this.currentAlpha = startAlpha + (this.fraction * (targetAlpha - startAlpha))
             }
         }
+
+        Timber.d("updateProperties: currX=%.2f, currY=%.2f, currRotation=%.2f, currAlpha=%.2f", 
+            currX, currY, currRotation, currAlpha)
     }
 
     // android.animation.Animator.AnimatorListener
@@ -335,6 +339,8 @@ open class CardAnimation protected constructor(
      * 开始动画
      */
     fun start() {
+        Timber.d("start: animationType=%s, startX=%.2f, startY=%.2f, endX=%.2f, endY=%.2f", 
+            animationType, initialStartX, initialStartY, endX, endY)
         this.state = State.RUNNING
         viewHolder.setIsRecyclable(false)
         updateProperties()

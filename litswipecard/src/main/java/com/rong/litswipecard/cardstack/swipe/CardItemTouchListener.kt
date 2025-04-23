@@ -344,7 +344,7 @@ abstract class CardItemTouchListener
             val viewHolder = touchPointer.viewHolder
             val isDragging = touchPointer.isDragging
             if (!this.touchHelperUtil.isBelowThreshold(this.activeTouchPointer!!, this.swipeThresholdDetector) || isDragging) {
-                dispatchTouchEndEvent(viewHolder.itemView, motionEvent)
+                dispatchCancelEvent(viewHolder.itemView, motionEvent)
                 val isReadyToAcceptSwipes: Boolean = this.touchHelperUtil.isReadyToAcceptSwipes(viewHolder, recyclerView, this.cardAnimator)
                 val shouldPerformSwipeOut: Boolean = shouldPerformSwipeOutAnimation(this.activeTouchPointer!!)
                 if (isReadyToAcceptSwipes && shouldPerformSwipeOut) {
