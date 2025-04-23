@@ -166,6 +166,7 @@ abstract class CardItemTouchListener
      * @param touchPointer 触摸指针
      */
     private fun performSwipeOutAnimation(touchPointer: TouchPointer) {
+        Timber.d("performSwipeOutAnimation:: start, viewHolder position=%d", touchPointer.viewHolder.adapterPosition)
         val endX: Float
         val deltaX: Float
         val finalY: Float
@@ -248,6 +249,7 @@ abstract class CardItemTouchListener
         cardAnimator.addActiveAnimation(cardAnimation)
         cardAnimation.start()
         recyclerView.invalidate()
+        Timber.d("performSwipeOutAnimation:: end, animation started with duration=%d", duration)
     }
 
     private val xVelocity: Float

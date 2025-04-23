@@ -54,6 +54,11 @@ open class CardAnimation protected constructor(
     private var fraction = 0f
     private var hasRotation = false
     var isFlaggedForRemoval: Boolean = false
+        set(value) {
+            Timber.d("setFlaggedForRemoval:: from %b to %b for viewHolder position=%d", 
+                field, value, viewHolder.adapterPosition)
+            field = value
+        }
 
     /**
      * 动画类型枚举
@@ -123,7 +128,9 @@ open class CardAnimation protected constructor(
      */
     private fun updateAnimation(newFraction: Float) {
         this.fraction = newFraction
-        Timber.d("updateAnimation: fraction=%.2f, animationType=%s", newFraction, animationType)
+        Timber.d("updateAnimation:: fraction=%.2f, animationType=%s, isFlaggedForRemoval=%b", 
+            newFraction, animationType, isFlaggedForRemoval)
+       
     }
 
     /**
@@ -293,8 +300,8 @@ open class CardAnimation protected constructor(
             }
         }
 
-        Timber.d("updateProperties: currX=%.2f, currY=%.2f, currRotation=%.2f, currAlpha=%.2f", 
-            currX, currY, currRotation, currAlpha)
+        Timber.d("updateProperties:: currX=%.2f, currY=%.2f, currRotation=%.2f, currAlpha=%.2f, isFlaggedForRemoval=%b", 
+            currX, currY, currRotation, currAlpha, isFlaggedForRemoval)
     }
 
     // android.animation.Animator.AnimatorListener
@@ -310,12 +317,15 @@ open class CardAnimation protected constructor(
 
     // android.animation.Animator.AnimatorListener
     override fun onAnimationEnd(animator: Animator) {
+        Timber.d("onAnimationEnd:: animation=%s, viewHolder position=%d, isFlaggedForRemoval=%b, state=%s", 
+            animationType, viewHolder.adapterPosition, isFlaggedForRemoval, state)
         if (isRunning) {
             viewHolder.setIsRecyclable(true)
             valueAnimator.removeAllUpdateListeners()
         }
         this.state = State.FINISHED
         notifyAnimationEnd(animator)
+        Timber.d("onAnimationEnd:: animation finished, state=%s, isFlaggedForRemoval=%b", state, isFlaggedForRemoval)
     }
 
     // android.animation.Animator.AnimatorListener
@@ -339,8 +349,8 @@ open class CardAnimation protected constructor(
      * 开始动画
      */
     fun start() {
-        Timber.d("start: animationType=%s, startX=%.2f, startY=%.2f, endX=%.2f, endY=%.2f", 
-            animationType, initialStartX, initialStartY, endX, endY)
+        Timber.d("start:: animationType=%s, startX=%.2f, startY=%.2f, endX=%.2f, endY=%.2f, isFlaggedForRemoval=%b", 
+            animationType, initialStartX, initialStartY, endX, endY, isFlaggedForRemoval)
         this.state = State.RUNNING
         viewHolder.setIsRecyclable(false)
         updateProperties()

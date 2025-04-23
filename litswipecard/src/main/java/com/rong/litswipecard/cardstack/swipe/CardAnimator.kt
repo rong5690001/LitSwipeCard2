@@ -88,10 +88,13 @@ class CardAnimator {
      * @param viewHolder 视图持有者
      */
     fun endCardAnimation(viewHolder: RecyclerView.ViewHolder) {
+        Timber.d("endCardAnimation:: start, viewHolder position=%d", viewHolder.adapterPosition)
         val it2 = activeAnimations.iterator()
         while (it2.hasNext()) {
             val animation = it2.next()
             if (animation.viewHolder === viewHolder) {
+                Timber.d("endCardAnimation:: removing active animation type=%s, isFlaggedForRemoval=%b", 
+                    animation.animationType, animation.isFlaggedForRemoval)
                 it2.remove()
                 if (animation.isRunning) {
                     animation.cancel()
@@ -102,10 +105,12 @@ class CardAnimator {
         while (it3.hasNext()) {
             val animation = it3.next()
             if (animation.viewHolder === viewHolder) {
+                Timber.d("endCardAnimation:: removing paused animation type=%s", animation.animationType)
                 it3.remove()
                 animation.cancel()
             }
         }
+        Timber.d("endCardAnimation:: end for viewHolder position=%d", viewHolder.adapterPosition)
     }
 
     /**

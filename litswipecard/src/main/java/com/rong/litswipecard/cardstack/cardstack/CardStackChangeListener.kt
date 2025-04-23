@@ -7,6 +7,7 @@ import com.rong.litswipecard.cardstack.swipe.CardAnimation
 import com.rong.litswipecard.cardstack.swipe.CardAnimator
 import com.rong.litswipecard.cardstack.swipe.TouchPointer
 import com.rong.litswipecard.cardstack.view.OnChildAttachStateChangePostLayoutListeners
+import timber.log.Timber
 
 /**
  * 卡片堆栈变化监听器抽象基类
@@ -113,35 +114,38 @@ internal abstract class CardStackChangeListener
     }
 
     override fun onChildViewDetachedFromWindow(view: View) {
+        Timber.d("onChildViewDetachedFromWindow:: start, view=%s", view)
         // 尝试获取视图的ViewHolder
         var viewHolder = getViewHolder(view)
-
-
+        
         // 如果无法直接获取，尝试从卡片动画中获取
         var animation: CardAnimation? = null
         if (viewHolder == null) {
             animation = cardAnimator.findCardAnimation(view)
             if (animation != null) {
                 viewHolder = animation.viewHolder
+                Timber.d("onChildViewDetachedFromWindow:: found viewHolder from animation, position=%d", viewHolder.adapterPosition)
             }
+        } else {
+            Timber.d("onChildViewDetachedFromWindow:: found viewHolder directly, position=%d", viewHolder.adapterPosition)
         }
-
 
         // 如果仍然无法获取ViewHolder，不执行任何操作
         if (viewHolder == null) {
+            Timber.w("onChildViewDetachedFromWindow:: viewHolder is null")
             return
         }
-
 
         // 获取当前触摸指针
         val touchPointer = touchPointer
 
-
         // 如果没有触摸指针或触摸指针不指向当前分离的视图，结束卡片动画
         if (touchPointer == null || touchPointer.viewHolder.itemView !== view) {
+            Timber.d("onChildViewDetachedFromWindow:: ending card animation for viewHolder position=%d", viewHolder.adapterPosition)
             cardAnimator.endCardAnimation(viewHolder)
         } else {
             // 标记触摸指针为已分离状态
+            Timber.d("onChildViewDetachedFromWindow:: setting touch pointer detached")
             setTouchPointerDetached(true)
         }
     }

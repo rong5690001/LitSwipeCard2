@@ -217,12 +217,15 @@ abstract class CardCollectionLayout @JvmOverloads constructor(
      * @param swipeAnimation 滑动动画
      */
     fun removeCard(position: Int, swipeAnimation: SwipeAnimation?) {
+        Timber.d("removeCard:: start, position=%d, swipeAnimation=%s", position, swipeAnimation?.javaClass?.simpleName)
         if (!isValidRemovePosition(position)) {
+            Timber.w("removeCard:: invalid position %d", position)
             logInvalidRemovePosition(position)
             return
         }
         val adapter = adapter
         adapter[position].disappearingAnimation = swipeAnimation
+        Timber.d("removeCard:: removing card at position %d", position)
         adapter.remove(position)
     }
 

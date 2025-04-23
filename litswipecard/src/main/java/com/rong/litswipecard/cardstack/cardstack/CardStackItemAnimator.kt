@@ -16,6 +16,7 @@ import com.rong.litswipecard.cardstack.swipe.CardAnimation.AnimationType
 import com.rong.litswipecard.cardstack.swipe.CardAnimator
 import com.rong.litswipecard.cardstack.view.CardStackLayout.CardRewindAnimationStateListener
 import com.rong.litswipecard.cardstack.view.CardViewHolder
+import timber.log.Timber
 
 
 /**
@@ -152,6 +153,7 @@ class CardStackItemAnimator
     }
 
     private fun handleDisappearingAnimation(holder: RecyclerView.ViewHolder, animation: SwipeAnimation) {
+        Timber.d("handleDisappearingAnimation:: start, holder position=%d", holder.adapterPosition)
         pendingAnimationsCount++
         val view = holder.itemView
         var translationX = ViewCompat.getTranslationX(view)
@@ -189,8 +191,10 @@ class CardStackItemAnimator
             addListener(AnimationEndListener(holder))
         }
 
+        Timber.d("handleDisappearingAnimation:: created animation with isFlaggedForRemoval=true")
         cardAnimator.addActiveAnimation(cardAnimation)
         cardAnimation.start()
+        Timber.d("handleDisappearingAnimation:: end, animation started")
     }
 
     override fun animateAppearance(
@@ -251,36 +255,48 @@ class CardStackItemAnimator
         preLayoutInfo: ItemHolderInfo,
         postLayoutInfo: ItemHolderInfo?
     ): Boolean {
+        Timber.d("animateDisappearance:: start, viewHolder position=%d", viewHolder.adapterPosition)
         val findCardAnimation = this.cardAnimator.findCardAnimation(viewHolder)
         val disappearingAnimation = getDisappearingAnimation(viewHolder)
+        
+        Timber.d("animateDisappearance:: findCardAnimation=%s, disappearingAnimation=%s", 
+            findCardAnimation?.animationType, disappearingAnimation?.javaClass?.simpleName)
+
         if (findCardAnimation == null || disappearingAnimation == null) {
             if (disappearingAnimation != null) {
+                Timber.d("animateDisappearance:: handling disappearing animation")
                 handleDisappearingAnimation(viewHolder, disappearingAnimation)
                 return true
             }
             if (findCardAnimation != null && findCardAnimation.isRunning) {
+                Timber.d("animateDisappearance:: ending running card animation")
                 this.cardAnimator.endCardAnimation(viewHolder)
             }
             ViewCompat.setAlpha(viewHolder.itemView, 0.0f)
             dispatchAnimationFinished(viewHolder)
             return false
         }
+        Timber.d("animateDisappearance:: flagging animation for removal")
         findCardAnimation.isFlaggedForRemoval = true
         if (findCardAnimation.isRunning && findCardAnimation.animationType == AnimationType.SWIPE_OUT) {
+            Timber.d("animateDisappearance:: adding end listener to running swipe out animation")
             this.pendingAnimationsCount++
             findCardAnimation.addListener(AnimationEndListener(viewHolder))
             return true
         }
         if (!findCardAnimation.isRunning && findCardAnimation.animationType == AnimationType.RECOVER) {
+            Timber.d("animateDisappearance:: ending non-running recover animation and handling disappearing")
             this.cardAnimator.endCardAnimation(findCardAnimation.viewHolder)
             handleDisappearingAnimation(viewHolder, disappearingAnimation)
             return false
         }
         if (findCardAnimation.isRunning && findCardAnimation.animationType == AnimationType.RECOVER) {
+            Timber.d("animateDisappearance:: ending running recover animation and handling disappearing")
             this.cardAnimator.endCardAnimation(viewHolder)
             handleDisappearingAnimation(viewHolder, disappearingAnimation)
             return false
         }
+        Timber.d("animateDisappearance:: ending card animation and finishing")
         this.cardAnimator.endCardAnimation(viewHolder)
         dispatchAnimationFinished(findCardAnimation.viewHolder)
         return false
