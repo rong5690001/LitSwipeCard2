@@ -149,13 +149,18 @@ class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.La
                 initCardMeasurements(recycler)
             }
 
-
             // 获取卡片视图并测量
             val cardView: View = recycler.getViewForPosition(i)
-            cardView.layoutDirection = getLayoutDirection()
+            cardView.layoutDirection = layoutDirection
             measureChildWithMargins(cardView, 0, 0)
             viewStack.push(cardView)
-
+            val cardViewHolder = cardStackLayout.getChildViewHolder(cardView) as CardViewHolder<*>
+            val cardViewModel = cardViewHolder.cardViewModel
+            if (cardViewModel != null) {
+                Timber.d("layoutChildren: pushView CardViewModel = %s", cardViewModel.toString())
+            } else {
+                Timber.d("layoutChildren: pushView CardViewModel is null for ViewHolder: %s", getCanonicalClassName(cardViewHolder))
+            }
 
             // 布局卡片
             layoutDecorated(cardView, 0, 0, this.cardWidth, this.cardHeight)
@@ -171,6 +176,13 @@ class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.La
 
             // 设置卡片状态
             val cardViewHolder: CardViewHolder<*> = cardStackLayout.getChildViewHolder(cardView) as CardViewHolder<*>
+            // 打印CardViewHolder中的cardViewModel
+            val cardViewModel = cardViewHolder.cardViewModel
+            if (cardViewModel != null) {
+                Timber.d("layoutChildren: addView CardViewModel = %s", cardViewModel.toString())
+            } else {
+                Timber.d("layoutChildren: addView CardViewModel is null for ViewHolder: %s", getCanonicalClassName(cardViewHolder))
+            }
             if (!viewStack.isEmpty()) {
                 // 不是顶部卡片
                 cardViewHolder.onCardAtTop(false)
@@ -313,7 +325,7 @@ class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.La
         // 确保顶部卡片始终在最上层
         val topCard = findTopCardView()
         if (topCard != null) {
-            Timber.d("Bringing top card to front: %s", topCard.toString())
+            Timber.d("onLayoutChildren: Bringing top card to front, %s", topCard.toString())
             topCard.bringToFront()
         }
 

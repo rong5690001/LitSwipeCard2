@@ -1,0 +1,53 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# LitSwipeCard 卡片滑动库
+
+LitSwipeCard 是一个Android卡片滑动组件库，基于RecyclerView实现。它提供了类似Tinder的卡片堆叠和滑动效果，支持左、右、上、下四个方向的滑动操作。
+
+## 核心结构
+
+### 视图组件
+
+- [CardStackLayout.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/view/CardStackLayout.kt) - 主要的卡片堆叠布局视图，继承自CardCollectionLayout，管理卡片的显示和交互
+- [CardView.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/view/CardView.kt) - 单个卡片的视图实现
+- [CardViewHolder.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/view/CardViewHolder.kt) - 卡片视图持有者，管理卡片数据与视图的绑定
+
+### 布局管理
+
+- [CardStackLayoutManager.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/cardstack/CardStackLayoutManager.kt) - 负责管理卡片堆叠视图的布局逻辑
+- [CardStackSwipeHelper.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/cardstack/CardStackSwipeHelper.kt) - 处理卡片滑动的辅助类
+
+### 模型类
+
+- [Card.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/model/Card.kt) - 卡片数据模型
+- [SwipeDirection.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/model/SwipeDirection.kt) - 滑动方向的枚举定义（上、下、左、右）
+- [Direction.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/model/Direction.kt) - 简单方向枚举类（上、下）
+
+### 动画
+
+- [SwipeAnimation.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeAnimation.kt) - 滑动动画基类
+- [SwipeLeftAnimation.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeLeftAnimation.kt) - 向左滑动的动画
+- [SwipeRightAnimation.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeRightAnimation.kt) - 向右滑动的动画
+- [SwipeUpAnimation.kt](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeUpAnimation.kt) - 向上滑动的动画
+
+## 使用示例
+
+示例应用位于 [MainActivity.kt](mdc:app/src/main/java/com/rong/litswipecard2/MainActivity.kt)，展示了如何初始化和使用卡片堆叠布局。
+
+基本用法示例：
+
+1. 在布局XML中添加CardStackLayout
+2. 创建CardViewAdapter和CardViewHolder
+3. 实现监听器以处理卡片事件
+4. 创建卡片数据模型并添加到适配器
+
+## 核心功能
+
+- 支持四向滑动（上、下、左、右）
+- 自定义卡片视图和布局
+- 丰富的事件监听（卡片呈现、滑动方向、移动过程等）
+- 可自定义滑动动画和效果
+- 基于RecyclerView，支持高效的卡片回收利用

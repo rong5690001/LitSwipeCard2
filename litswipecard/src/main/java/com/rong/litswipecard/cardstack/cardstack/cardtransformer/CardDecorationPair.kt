@@ -200,8 +200,8 @@ internal class CardDecorationPair(
 
 
         // 应用到底部卡片
-        ViewCompat.setScaleX(this.lowerCardView, lowerCardScale)
-        ViewCompat.setScaleY(this.lowerCardView, lowerCardScale)
+        this.lowerCardView.scaleX = lowerCardScale
+        this.lowerCardView.scaleY = lowerCardScale
         ViewCompat.setTranslationZ(this.lowerCardView, lowerCardZ)
     }
 

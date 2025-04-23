@@ -1,0 +1,69 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# CardStack 核心实现
+
+CardStack 是 LitSwipeCard 库的核心部分，负责管理卡片的堆叠、显示和滑动交互逻辑。
+
+## 核心组件
+
+### 布局管理器
+
+[CardStackLayoutManager](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/cardstack/CardStackLayoutManager.kt) 继承自 RecyclerView.LayoutManager，主要负责：
+
+- 布局子视图（卡片）
+- 管理卡片的添加和移除
+- 处理卡片的附加和分离事件
+- 控制显示的卡片数量（通常为2张）
+- 监控顶部卡片的变化
+
+### 滑动辅助器
+
+[CardStackSwipeHelper](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/cardstack/CardStackSwipeHelper.kt) 处理所有与滑动相关的逻辑：
+
+- 处理触摸事件
+- 计算滑动方向和距离
+- 触发滑动阈值判断
+- 管理滑动动画
+- 通知滑动事件监听器
+
+### 卡片变换
+
+[CardTransforms](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/cardstack/cardtransformer/CardTransforms.kt) 定义了卡片的视觉变换接口：
+
+- 控制卡片的缩放、旋转和透明度
+- 处理卡片堆叠时的视觉效果
+- 支持自定义变换效果
+
+## 工作流程
+
+1. **初始化**：CardStackLayout 初始化时创建 CardStackLayoutManager 和 CardStackSwipeHelper
+2. **布局**：LayoutManager 从适配器中获取卡片视图并进行布局
+3. **交互**：
+   - 用户触摸顶部卡片时，SwipeHelper 开始处理滑动事件
+   - 滑动过程中实时计算位移、旋转角度
+   - 根据滑动方向和距离判断是否超过阈值
+4. **动画**：
+   - 超过阈值时触发滑出动画
+   - 未超过阈值时触发回弹动画
+   - 卡片滑出后，新的卡片会成为顶部卡片
+
+## 事件处理
+
+卡片堆栈提供多种事件监听器：
+
+- OnCardPresentedListener：当新卡片呈现在顶部时触发
+- OnTopCardMovedListener：跟踪顶部卡片的移动过程
+- OnCardPairStateChangeListener：监听卡片对的创建和销毁
+- OnPreSwipeListener：在滑动前触发，允许拦截滑动操作
+
+## 卡片变换设计
+
+默认的 [DefaultCardTransforms](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/cardstack/cardtransformer/DefaultCardTransforms.kt) 实现了：
+
+- 顶部卡片的旋转和移动效果
+- 底部卡片的缩放和透明度变化
+- 滑动过程中的平滑过渡
+- 卡片跟随手指移动的自然感

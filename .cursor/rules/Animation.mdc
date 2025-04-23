@@ -1,0 +1,67 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# LitSwipeCard 动画系统
+
+LitSwipeCard 库提供了丰富的动画系统，用于实现卡片的滑动、回弹和切换效果。动画系统采用模块化设计，使开发者可以自定义各种滑动行为。
+
+## 动画基类
+
+[SwipeAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeAnimation.kt) 是所有滑动动画的基类，定义了动画的基本属性：
+
+- 开始和结束的位置（X/Y坐标）
+- 开始和结束的旋转角度
+- 开始和结束的透明度
+- 动画持续时间
+- 插值器（控制动画速度曲线）
+
+## 滑动方向动画
+
+库提供了四个主要方向的滑动动画实现：
+
+- [SwipeLeftAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeLeftAnimation.kt) - 向左滑动
+- [SwipeRightAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeRightAnimation.kt) - 向右滑动
+- [SwipeUpAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeUpAnimation.kt) - 向上滑动
+- [SwipeDownAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeDownAnimation.kt) - 向下滑动
+
+每个方向动画类重写了基类方法，定义了该方向特有的动画参数。
+
+## 回弹动画
+
+回弹动画用于当用户释放卡片且未达到滑出阈值时，将卡片回弹到原位：
+
+- [SwipeLeftRewindAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeLeftRewindAnimation.kt)
+- [SwipeRightRewindAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeRightRewindAnimation.kt)
+- [SwipeUpRewindAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/SwipeUpRewindAnimation.kt)
+
+## 动画插值器
+
+[SwipeOutInterpolator](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/animation/interpolator/SwipeOutInterpolator.kt) 是专门为卡片滑出设计的插值器，提供了更自然的动画效果。
+
+## 卡片动画
+
+[CardAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/swipe/CardAnimation.kt) 负责管理卡片的整体动画，包括：
+
+- 创建属性动画器
+- 设置动画参数
+- 添加动画监听器
+- 处理动画生命周期
+
+## 动画集成
+
+[SwipeOutCardAnimation](mdc:litswipecard/src/main/java/com/rong/litswipecard/cardstack/cardstack/SwipeOutCardAnimation.kt) 将所有动画组件整合起来，提供了完整的滑出动画实现：
+
+- 根据滑动方向选择合适的动画
+- 计算动画参数和目标位置
+- 设置动画监听器
+- 处理动画结束后的卡片状态
+
+## 动画自定义
+
+开发者可以通过以下方式自定义动画：
+
+1. 继承 SwipeAnimation 类并实现自己的动画逻辑
+2. 创建自定义插值器实现特殊的动画速度曲线
+3. 通过 CardStackLayout 的 API 设置自定义动画

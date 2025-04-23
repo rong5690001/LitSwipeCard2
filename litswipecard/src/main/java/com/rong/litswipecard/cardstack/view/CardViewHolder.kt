@@ -22,7 +22,8 @@ class CardViewHolder<M : Card<*>?>(view: View) : RecyclerView.ViewHolder(view) {
     /**
      * 卡片数据模型
      */
-    private var cardViewModel: M? = null
+    var cardViewModel: M? = null
+        private set
 
     /**
      * 是否位于顶部
