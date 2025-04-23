@@ -355,7 +355,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      */
     fun removeCardRewindAnimationStateListener() {
         Timber.d("Removing card rewind animation state listener")
-        cardStackItemAnimator.clearRewindAnimationStateListener()
+        cardStackItemAnimator.resetRewindAnimationListener()
     }
 
     /**
@@ -417,7 +417,7 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      */
     fun setCardRewindAnimationStateListener(listener: CardStackLayout.CardRewindAnimationStateListener) {
         Timber.d("Setting card rewind animation state listener: %s", listener.javaClass.simpleName)
-        cardStackItemAnimator.setRewindAnimationStateListener(listener)
+        cardStackItemAnimator.setRewindAnimationListener(listener)
     }
 
     /**

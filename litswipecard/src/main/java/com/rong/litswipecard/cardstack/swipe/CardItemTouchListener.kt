@@ -315,9 +315,11 @@ abstract class CardItemTouchListener
     private fun shouldPerformSwipeOutAnimation(touchPointer: TouchPointer): Boolean {
         val velocityTracker = this.velocityTracker
         if (velocityTracker != null) {
-            return touchHelperUtil.shouldPerformSwipeAnimation(touchPointer, velocityTracker, this.swipeThresholdDetector)
+            val shouldPerform = touchHelperUtil.shouldPerformSwipeAnimation(touchPointer, velocityTracker, this.swipeThresholdDetector)
+            Timber.d("shouldPerformSwipeOutAnimation:: velocityTracker exists, shouldPerform=%b", shouldPerform)
+            return shouldPerform
         }
-        Timber.w("Check implementation: velocityTracker is Null::", arrayOfNulls<Any>(0))
+        Timber.w("shouldPerformSwipeOutAnimation:: velocityTracker is Null")
         return false
     }
 
@@ -337,10 +339,13 @@ abstract class CardItemTouchListener
      * @param motionEvent 触摸事件
      */
     private fun handleActionDown(motionEvent: MotionEvent) {
+        Timber.d("handleActionDown:: start x=%.2f, y=%.2f", motionEvent.x, motionEvent.y)
         releaseVelocityTracker()
         obtainVelocityTracker()
         velocityTracker!!.addMovement(motionEvent)
         findAndSelectViewHolder(motionEvent)
+        Timber.d("handleActionDown:: end, activeTouchPointer=%s", 
+            if (activeTouchPointer != null) "set" else "null")
     }
 
     /**
@@ -435,23 +440,34 @@ abstract class CardItemTouchListener
      * @param motionEvent 触摸事件
      */
     protected fun findAndSelectViewHolder(motionEvent: MotionEvent) {
+        Timber.d("findAndSelectViewHolder:: start x=%.2f, y=%.2f", motionEvent.x, motionEvent.y)
+        
         val childView: View? = recyclerView.findChildViewUnder(motionEvent.getX(), motionEvent.getY())
         if (childView == null) {
-            Timber.w("Child view is null!", arrayOfNulls<Any>(0))
+            Timber.w("findAndSelectViewHolder:: Child view is null!")
             return
         }
+        
+        Timber.d("findAndSelectViewHolder:: found child view: %s", childView.toString())
+        
         val viewHolder: RecyclerView.ViewHolder? = recyclerView.getChildViewHolder(childView)
         if (viewHolder == null) {
-            Timber.w("View holder is null!", arrayOfNulls<Any>(0))
+            Timber.w("findAndSelectViewHolder:: View holder is null!")
             return
         }
+        
+        Timber.d("findAndSelectViewHolder:: found view holder: %s", viewHolder.toString())
+        
         if (!isSwipable(viewHolder)) {
-            Timber.w("View holder not swipable!", arrayOfNulls<Any>(0))
+            Timber.w("findAndSelectViewHolder:: View holder not swipable!")
             return
         }
+        
+        Timber.d("findAndSelectViewHolder:: Found valid swipable view holder")
         val dragConstraints = createDragConstraints(viewHolder)
         val touchPointer: TouchPointer = newTouchPointer(viewHolder, motionEvent, dragConstraints)
         this.activeTouchPointer = touchPointer
+        Timber.d("findAndSelectViewHolder:: Created touch pointer and dispatching ACTION_DOWN")
         dispatchActionDownEvent(childView, motionEvent)
     }
 
@@ -507,26 +523,45 @@ abstract class CardItemTouchListener
      * @return 是否拦截
      */
     override fun onInterceptTouchEvent(recyclerView: RecyclerView, motionEvent: MotionEvent): Boolean {
+        val actionMasked: Int = MotionEventCompat.getActionMasked(motionEvent)
+        Timber.d("onInterceptTouchEvent:: action=%d, x=%.2f, y=%.2f, actionMasked=%d", 
+            motionEvent.action, motionEvent.x, motionEvent.y, actionMasked)
+            
         if (this.activeTouchPointer != null) {
+            Timber.d("onInterceptTouchEvent:: already has active pointer, isDragging=%b", 
+                activeTouchPointer!!.isDragging)
             return true
         }
-        val actionMasked: Int = MotionEventCompat.getActionMasked(motionEvent)
+        
         if (actionMasked != MotionEvent.ACTION_DOWN) {
+            Timber.d("onInterceptTouchEvent:: not ACTION_DOWN, returning false")
             return false
         }
+        
+        Timber.d("onInterceptTouchEvent:: handling ACTION_DOWN")
         handleActionDown(motionEvent)
+        
         if (this.activeTouchPointer == null) {
+            Timber.d("onInterceptTouchEvent:: no active pointer after ACTION_DOWN")
             return false
         }
+        
+        Timber.d("onInterceptTouchEvent:: active pointer set, disallowing intercept")
         disallowTouchIntercept()
 
-        if (preSwipeListener.onPreSwipe(this.recyclerView.getChildAdapterPosition(activeTouchPointer!!.viewHolder.itemView), SwipeDirection.NONE)) {
+        val position = this.recyclerView.getChildAdapterPosition(activeTouchPointer!!.viewHolder.itemView)
+        Timber.d("onInterceptTouchEvent:: checking preSwipe for position %d", position)
+        
+        if (preSwipeListener.onPreSwipe(position, SwipeDirection.NONE)) {
+            Timber.d("onInterceptTouchEvent:: preSwipe returned true, canceling")
             handleActionCancel(motionEvent)
             return false
         }
 
         this.recyclerView.parent.requestDisallowInterceptTouchEvent(true)
-        return activeTouchPointer!!.isDragging
+        val shouldIntercept = activeTouchPointer!!.isDragging
+        Timber.d("onInterceptTouchEvent:: returning %b (isDragging)", shouldIntercept)
+        return shouldIntercept
     }
 
     /**
@@ -542,26 +577,32 @@ abstract class CardItemTouchListener
      * @param motionEvent 触摸事件
      */
     override fun onTouchEvent(recyclerView: RecyclerView, motionEvent: MotionEvent) {
-        if (this.activeTouchPointer == null) {
-            return
-        }
-        val actionMasked = MotionEventCompat.getActionMasked(motionEvent)
-        val findPointerIndex = motionEvent.findPointerIndex(activeTouchPointer!!.pointerId)
-        if (actionMasked != MotionEvent.ACTION_UP) {
-            if (actionMasked != MotionEvent.ACTION_MOVE) {
-                if (actionMasked != MotionEvent.ACTION_CANCEL) {
-                    if (actionMasked == MotionEvent.ACTION_POINTER_UP && motionEvent.getPointerId(MotionEventCompat.getActionIndex(motionEvent)) === activeTouchPointer!!.pointerId) {
-                        handleActionCancel(motionEvent)
-                    }
-                }
-            } else {
-                if (findPointerIndex < 0) {
+        val touchPointer = this.activeTouchPointer ?: return
+
+        val actionMasked: Int = MotionEventCompat.getActionMasked(motionEvent)
+        Timber.d("onTouchEvent:: action=%d, x=%.2f, y=%.2f", 
+            actionMasked, motionEvent.x, motionEvent.y)
+
+        when (actionMasked) {
+            MotionEvent.ACTION_POINTER_DOWN -> {}
+            MotionEvent.ACTION_POINTER_UP -> {}
+            MotionEvent.ACTION_DOWN -> handleActionDown(motionEvent)
+            MotionEvent.ACTION_MOVE -> {
+                val velocityTracker = this.velocityTracker
+                velocityTracker?.addMovement(motionEvent)
+                val pointerIndex: Int = motionEvent.findPointerIndex(activeTouchPointer!!.pointerId)
+                if (pointerIndex < 0) {
+                    Timber.w("onTouchEvent:: Invalid pointer index!")
                     return
                 }
-                calculateTouchDelta(this.touchDelta, motionEvent, findPointerIndex)
-                val pointF: PointF = this.touchDelta
-                val deltaX = pointF.x
-                if (deltaX == 0.0f && pointF.y == 0.0f) {
+                calculateTouchDelta(this.touchDelta, motionEvent, pointerIndex)
+                val deltaX: Float = touchDelta.x
+                val deltaY: Float = touchDelta.y
+                
+                Timber.d("onTouchEvent:: MOVE deltaX=%.2f, deltaY=%.2f, isDragging=%b", 
+                    deltaX, deltaY, touchPointer.isDragging)
+                
+                if (deltaX == 0.0f && deltaY == 0.0f) {
                     return
                 }
                 activeTouchPointer!!.updateDragX(deltaX)
@@ -576,13 +617,33 @@ abstract class CardItemTouchListener
                 }
                 if (!this.touchHelperUtil.isBelowThreshold(this.activeTouchPointer!!, this.swipeThresholdDetector) && !activeTouchPointer!!.isDragging) {
                     activeTouchPointer!!.isDragging = true
+                    Timber.d("onTouchEvent:: Started dragging")
                 }
                 recyclerView.invalidate()
             }
-            q(motionEvent)
+            MotionEvent.ACTION_UP -> {
+                Timber.d("onTouchEvent:: ACTION_UP, isDragging=%b", touchPointer.isDragging)
+                if (this.velocityTracker != null) {
+                    velocityTracker!!.addMovement(motionEvent)
+                    velocityTracker!!.computeCurrentVelocity(swipeThresholdDetector.velocityTrackingUnits)
+                    Timber.d("onTouchEvent:: ACTION_UP velocityX=%.2f, velocityY=%.2f", 
+                        velocityTracker!!.xVelocity, velocityTracker!!.yVelocity)
+                }
+                dispatchTouchEndEvent(touchPointer.viewHolder.itemView, motionEvent)
+                if (touchPointer.isDragging && shouldPerformSwipeOutAnimation(touchPointer)) {
+                    Timber.d("onTouchEvent:: Performing swipe out animation")
+                    performSwipeOutAnimation(touchPointer)
+                } else {
+                    Timber.d("onTouchEvent:: No swipe animation, calling onTouchEnd")
+                    cardAnimator.onTouchEnd(touchPointer.viewHolder.itemView)
+                }
+                handleActionUp(motionEvent)
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                Timber.d("onTouchEvent:: ACTION_CANCEL")
+                handleActionCancel(motionEvent)
+            }
         }
-        handleActionUp(motionEvent)
-        q(motionEvent)
     }
 
     /**

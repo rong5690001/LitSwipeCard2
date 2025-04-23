@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.rong.litswipecard.cardstack.view.CardDecorationListener
 import com.rong.litswipecard.cardstack.model.SwipeDirection
 import com.rong.litswipecard.cardstack.cardstack.SwipeOutCardAnimation
+import timber.log.Timber
 
 /**
  * 卡片项装饰器
@@ -52,7 +53,20 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
     /**
      * 应用变换和旋转的装饰
      */
-    private fun applyTransformWithRotation(canvas: Canvas, view: View, recyclerView: RecyclerView, translationX: Float, translationY: Float, alpha: Float, rotation: Float, isRecovering: Boolean, isThresholdCrossed: Boolean) {
+    private fun applyTransformWithRotation(
+        canvas: Canvas,
+        view: View,
+        recyclerView: RecyclerView,
+        translationX: Float,
+        translationY: Float,
+        alpha: Float,
+        rotation: Float,
+        isRecovering: Boolean,
+        isThresholdCrossed: Boolean
+    ) {
+        Timber.d("applyTransformWithRotation:: translationX=%.2f, translationY=%.2f, rotation=%.2f, isRecovering=%b", 
+            translationX, translationY, rotation, isRecovering)
+            
         ViewCompat.setTranslationX(view, translationX)
         ViewCompat.setTranslationY(view, translationY)
         ViewCompat.setRotation(view, rotation)
@@ -65,7 +79,19 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
     /**
      * 应用变换但不旋转的装饰
      */
-    private fun applyTransformWithoutRotation(canvas: Canvas, view: View, recyclerView: RecyclerView, translationX: Float, translationY: Float, alpha: Float, isRecovering: Boolean, isThresholdCrossed: Boolean) {
+    private fun applyTransformWithoutRotation(
+        canvas: Canvas,
+        view: View,
+        recyclerView: RecyclerView,
+        translationX: Float,
+        translationY: Float,
+        alpha: Float,
+        isRecovering: Boolean,
+        isThresholdCrossed: Boolean
+    ) {
+        Timber.d("applyTransformWithoutRotation:: translationX=%.2f, translationY=%.2f, isRecovering=%b", 
+            translationX, translationY, isRecovering)
+            
         ViewCompat.setTranslationX(view, translationX)
         ViewCompat.setTranslationY(view, translationY)
         if (ViewCompat.getAlpha(view) != alpha) {
@@ -77,7 +103,16 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
     /**
      * 应用装饰绘制结束
      */
-    private fun applyDecorationDrawOver(canvas: Canvas, view: View, viewGroup: ViewGroup, translationX: Float, translationY: Float, rotation: Float, isRecovering: Boolean, isThresholdCrossed: Boolean) {
+    private fun applyDecorationDrawOver(
+        canvas: Canvas,
+        view: View,
+        viewGroup: ViewGroup,
+        translationX: Float,
+        translationY: Float,
+        rotation: Float,
+        isRecovering: Boolean,
+        isThresholdCrossed: Boolean
+    ) {
         decorationListener.onDecorationDrawOver(canvas, view, viewGroup, translationX, translationY, rotation, getDirectionFromMovement(translationX, translationY), isRecovering, isThresholdCrossed)
     }
 
@@ -108,13 +143,25 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
      */
     override fun onDraw(canvas: Canvas, recyclerView: RecyclerView, state: RecyclerView.State) {
         super.onDraw(canvas, recyclerView, state)
+        Timber.d("onDraw:: start")
+        
         val activeTouchPointer = activeTouchPointer
+        if (activeTouchPointer != null) {
+            Timber.d("onDraw:: activeTouchPointer dragX=%.2f, dragY=%.2f", 
+                activeTouchPointer.dragX, activeTouchPointer.dragY)
+        }
+        
         for (cardAnimation in cardAnimator.getActiveAnimations()) {
             if (activeTouchPointer != null && cardAnimation.viewHolder === activeTouchPointer.viewHolder) {
+                Timber.d("onDraw:: releasing active touch pointer")
                 releaseActiveTouchPointer()
             }
             cardAnimation.updateProperties()
             val currAlpha = cardAnimation.currAlpha
+            
+            Timber.d("onDraw:: processing animation type=%s, currX=%.2f, currY=%.2f", 
+                cardAnimation.animationType, cardAnimation.currX, cardAnimation.currY)
+                
             if (cardAnimation.animationType === CardAnimation.AnimationType.RECOVER) {
                 val view = cardAnimation.viewHolder.itemView
                 applyTransformWithRotation(
@@ -147,9 +194,13 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
                 cardAnimation.setHasRotation(false)
             }
         }
+        
         val activePointer = this.activeTouchPointer
         if (activePointer != null) {
             val view2 = activePointer.viewHolder.itemView
+            Timber.d("onDraw:: applying active pointer transform dragX=%.2f, dragY=%.2f", 
+                activePointer.dragX, activePointer.dragY)
+                
             applyTransformWithRotation(
                 canvas,
                 view2,
@@ -162,6 +213,8 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
                 true
             )
         }
+        
+        Timber.d("onDraw:: end")
     }
 
     /**
@@ -170,6 +223,8 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
     override fun onDrawOver(canvas: Canvas, recyclerView: RecyclerView, state: RecyclerView.State) {
         var isAnythingAnimating: Boolean
         super.onDrawOver(canvas, recyclerView, state)
+        Timber.d("onDrawOver:: start")
+        
         val iterator = cardAnimator.getActiveAnimations().iterator()
         while (true) {
             if (!iterator.hasNext()) {
@@ -179,6 +234,12 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
             val cardAnimation = iterator.next() as CardAnimation
             val view = cardAnimation.viewHolder.itemView
             isAnythingAnimating = true
+            
+            Timber.d("onDrawOver:: animation type=%s, translationX=%.2f, translationY=%.2f", 
+                cardAnimation.animationType,
+                ViewCompat.getTranslationX(view),
+                ViewCompat.getTranslationY(view))
+                
             applyDecorationDrawOver(
                 canvas,
                 view,
@@ -193,9 +254,13 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
                 break
             }
         }
+        
         val activePointer = activeTouchPointer
         if (activePointer != null) {
             val view2 = activePointer.viewHolder.itemView
+            Timber.d("onDrawOver:: active pointer dragX=%.2f, dragY=%.2f", 
+                activePointer.dragX, activePointer.dragY)
+                
             applyDecorationDrawOver(
                 canvas,
                 view2,
@@ -207,9 +272,13 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
                 true
             )
         }
+        
         if (isAnythingAnimating) {
+            Timber.d("onDrawOver:: invalidating view due to ongoing animations")
             recyclerView.invalidate()
         }
+        
+        Timber.d("onDrawOver:: end")
     }
 
     /**

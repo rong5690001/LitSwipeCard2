@@ -258,5 +258,6 @@ class CardAnimator {
      */
     fun onTouchEnd(itemView: View?) {
         // 触摸结束的处理逻辑
+        
     }
 }

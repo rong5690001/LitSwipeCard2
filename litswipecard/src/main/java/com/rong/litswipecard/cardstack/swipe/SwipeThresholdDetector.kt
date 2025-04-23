@@ -11,6 +11,7 @@ import kotlin.math.atan2
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
+import timber.log.Timber
 
 /**
  * 滑动阈值检测器
@@ -122,11 +123,14 @@ class SwipeThresholdDetector(context: Context) {
      */
     init {
         val screenWidth: Float = ViewHelper.screenWidth
-        this.swipeEscapeVelocity = context.resources.getDimension(R.dimen.fling_escape_velocity_dp) * 6.0f
-        val threshold = screenWidth * 0.25f
+        this.swipeEscapeVelocity = context.resources.getDimension(R.dimen.fling_escape_velocity_dp) * 3.0f // 降低速度阈值
+        val threshold = screenWidth * 0.15f // 降低距离阈值
         this.minThresholdForSwipe = threshold
-        this.velocitySwipeThreshold = threshold / 3.0f
+        this.velocitySwipeThreshold = threshold / 2.0f // 降低速度触发阈值
         this.touchSlop = max(8.0, (ViewConfiguration.get(context).scaledTouchSlop / 2).toDouble()).toFloat()
+        
+        Timber.d("SwipeThresholdDetector:: initialized with thresholds - escape=%.2f, min=%.2f, velocity=%.2f", 
+            swipeEscapeVelocity, minThresholdForSwipe, velocitySwipeThreshold)
     }
 
     /**
@@ -164,7 +168,10 @@ class SwipeThresholdDetector(context: Context) {
      */
     private fun isHorizontalSwipe(velocityX: Float, velocityY: Float): Boolean {
         val absVelocityX = abs(velocityX.toDouble()).toFloat()
-        return absVelocityX > swipeEscapeVelocity && absVelocityX >= abs(velocityY.toDouble())
+        val result = absVelocityX > swipeEscapeVelocity && absVelocityX >= abs(velocityY.toDouble())
+        Timber.d("isHorizontalSwipe:: velocityX=%.2f, velocityY=%.2f, result=%b", 
+            velocityX, velocityY, result)
+        return result
     }
 
     /**
@@ -203,7 +210,10 @@ class SwipeThresholdDetector(context: Context) {
     private fun isVerticalSwipe(velocityX: Float, velocityY: Float): Boolean {
         val absVelocityX = abs(velocityX.toDouble()).toFloat()
         val absVelocityY = abs(velocityY.toDouble()).toFloat()
-        return absVelocityY > swipeEscapeVelocity && absVelocityY >= absVelocityX
+        val result = absVelocityY > swipeEscapeVelocity && absVelocityY >= absVelocityX
+        Timber.d("isVerticalSwipe:: velocityX=%.2f, velocityY=%.2f, result=%b", 
+            velocityX, velocityY, result)
+        return result
     }
 
     private val rotationFactor: Float
@@ -278,23 +288,31 @@ class SwipeThresholdDetector(context: Context) {
         val isVerticalSwipe = isVerticalSwipe(velocityX, velocityY)
 
         val directionOrdinal = DirectionOrdinalMap.DIRECTION_ORDINALS[getDirectionFromAngle(getDegreeOfRotation(dragX, dragY)).ordinal]
+        
+        Timber.d("isSwipeThresholdCrossed:: dragX=%.2f, dragY=%.2f, velocityX=%.2f, velocityY=%.2f", 
+            dragX, dragY, velocityX, velocityY)
 
         if (directionOrdinal == 1 || directionOrdinal == 2) { // 左右方向
             if (absDragX > minThresholdForSwipe) {
+                Timber.d("isSwipeThresholdCrossed:: horizontal drag threshold crossed")
                 return true
             }
             if (isHorizontalSwipe && absDragX > this.velocitySwipeThreshold) {
+                Timber.d("isSwipeThresholdCrossed:: horizontal velocity threshold crossed")
                 return true
             }
         } else if ((directionOrdinal == 3 || directionOrdinal == 4) && absDragY > absDragX) { // 上下方向
             if (absDragY > minThresholdForSwipe) {
+                Timber.d("isSwipeThresholdCrossed:: vertical drag threshold crossed")
                 return true
             }
             if (isVerticalSwipe && absDragY > this.velocitySwipeThreshold) {
+                Timber.d("isSwipeThresholdCrossed:: vertical velocity threshold crossed")
                 return true
             }
         }
-
+        
+        Timber.d("isSwipeThresholdCrossed:: no threshold crossed")
         return false
     }
 
