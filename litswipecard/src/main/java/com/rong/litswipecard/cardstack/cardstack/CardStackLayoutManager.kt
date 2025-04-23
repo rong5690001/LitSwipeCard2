@@ -128,7 +128,7 @@ class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.La
      */
     init {
         cardStackLayout.addOnChildAttachStateChangeListener(ChildAttachStateChangeListener())
-        setItemPrefetchEnabled(false)
+        isItemPrefetchEnabled = false
     }
 
     /**

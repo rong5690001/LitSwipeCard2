@@ -188,39 +188,44 @@ abstract class CardItemTouchListener
 
         val directionOrdinal = SwipeDirectionOrdinalMap.DIRECTION_ORDINALS[swipeThresholdDetector.getDirectionFromMovement(dragX, dragY).ordinal]
 
-        if (directionOrdinal == 1) { // LEFT
-            endX = SwipeLeftAnimation().endX()
-            deltaX = endX - currentTranslationX
-            finalY = (yToXRatio * deltaX) + currentTranslationY
-            velocityX = xVelocity
-            absEndX = abs(endX.toDouble()).toFloat()
-            finalX = endX
-            velocityY = velocityX
-            absAnimDistance = absEndX
-            finalTranslationY = finalY
-        } else if (directionOrdinal == 2) { // RIGHT
-            endX = SwipeRightAnimation().endX()
-            deltaX = endX - currentTranslationX
-            finalY = (yToXRatio * deltaX) + currentTranslationY
-            velocityX = xVelocity
-            absEndX = abs(endX.toDouble()).toFloat()
-            finalX = endX
-            velocityY = velocityX
-            absAnimDistance = absEndX
-            finalTranslationY = finalY
-        } else if (directionOrdinal == 3) { // UP
-            val endY: Float = SwipeUpAnimation().endY()
-            deltaX = endY - currentTranslationY
-            finalTranslationY = endY
-            velocityY = yVelocity
-            finalX = translationX
-            absAnimDistance = abs(endY.toDouble()).toFloat()
-        } else { // 默认情况
-            absAnimDistance = 0.0f
-            deltaX = 0.0f
-            velocityY = 0.0f
-            finalTranslationY = translationY
-            finalX = translationX
+        when (directionOrdinal) {
+            1 -> { // LEFT
+                endX = SwipeLeftAnimation().endX()
+                deltaX = endX - currentTranslationX
+                finalY = (yToXRatio * deltaX) + currentTranslationY
+                velocityX = xVelocity
+                absEndX = abs(endX.toDouble()).toFloat()
+                finalX = endX
+                velocityY = velocityX
+                absAnimDistance = absEndX
+                finalTranslationY = finalY
+            }
+            2 -> { // RIGHT
+                endX = SwipeRightAnimation().endX()
+                deltaX = endX - currentTranslationX
+                finalY = (yToXRatio * deltaX) + currentTranslationY
+                velocityX = xVelocity
+                absEndX = abs(endX.toDouble()).toFloat()
+                finalX = endX
+                velocityY = velocityX
+                absAnimDistance = absEndX
+                finalTranslationY = finalY
+            }
+            3 -> { // UP
+                val endY: Float = SwipeUpAnimation().endY()
+                deltaX = endY - currentTranslationY
+                finalTranslationY = endY
+                velocityY = yVelocity
+                finalX = translationX
+                absAnimDistance = abs(endY.toDouble()).toFloat()
+            }
+            else -> { // 默认情况
+                absAnimDistance = 0.0f
+                deltaX = 0.0f
+                velocityY = 0.0f
+                finalTranslationY = translationY
+                finalX = translationX
+            }
         }
 
         val animationSpeedFactor = absAnimDistance / 180.0f
@@ -343,7 +348,9 @@ abstract class CardItemTouchListener
         if (touchPointer != null) {
             val viewHolder = touchPointer.viewHolder
             val isDragging = touchPointer.isDragging
-            if (!this.touchHelperUtil.isBelowThreshold(this.activeTouchPointer!!, this.swipeThresholdDetector) || isDragging) {
+            val isBelowThreshold = this.touchHelperUtil.isBelowThreshold(this.activeTouchPointer!!, this.swipeThresholdDetector)
+            Timber.d("o: isDragging=%b, isBelowThreshold=%b", isDragging, isBelowThreshold)
+            if (!isBelowThreshold || isDragging) {
                 dispatchCancelEvent(viewHolder.itemView, motionEvent)
                 val isReadyToAcceptSwipes: Boolean = this.touchHelperUtil.isReadyToAcceptSwipes(viewHolder, recyclerView, this.cardAnimator)
                 val shouldPerformSwipeOut: Boolean = shouldPerformSwipeOutAnimation(this.activeTouchPointer!!)
@@ -619,6 +626,7 @@ abstract class CardItemTouchListener
      * @param shouldPublishUpdate 是否应发布更新
      */
     fun unselectViewHolder(shouldPublishUpdate: Boolean) {
+        Timber.i("unselectViewHolder: shouldPublishUpdate=%b", shouldPublishUpdate)
         this.activeTouchPointer = null
         if (shouldPublishUpdate) {
             allowParentTouchIntercept()
@@ -629,6 +637,7 @@ abstract class CardItemTouchListener
      * 取消选择视图持有者（不发布更新）
      */
     fun unselectViewHolderDoNotPublishUpdate() {
+        Timber.i("unselectViewHolderDoNotPublishUpdate: start")
         val touchPointer = this.activeTouchPointer
         if (touchPointer != null) {
             this.cardAnimator.startRecoverAnimation(touchPointer.viewHolder, recyclerView, touchPointer.firstTouchPoint)
