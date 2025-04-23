@@ -1,5 +1,6 @@
 package com.rong.litswipecard.cardstack.cardstack
 
+import android.icu.lang.UCharacter.GraphemeClusterBreak.L
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
@@ -10,6 +11,7 @@ import com.rong.litswipecard.cardstack.view.OnChildAttachStateChangePostLayoutLi
 import timber.log.Timber
 import java.util.ArrayDeque
 import kotlin.math.min
+
 
 /**
  * 卡片堆叠布局管理器
@@ -137,60 +139,29 @@ class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.La
      * @param state 状态
      */
     private fun layoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
-        // 最多显示2张卡片，或者可用的卡片数量
-        val cardCount = min(2.0, getItemCount().toDouble()).toInt()
-        val viewStack = ArrayDeque<View>(cardCount)
-
-
-        // 准备所有需要的卡片视图
-        for (i in 0..<cardCount) {
-            // 如果尺寸未初始化，先初始化
+        val min = min(2.0, itemCount.toDouble()).toInt()
+        val arrayDeque: ArrayDeque<View> = ArrayDeque(min)
+        for (i in 0..<min) {
             if (needsMeasurement()) {
                 initCardMeasurements(recycler)
             }
-
-            // 获取卡片视图并测量
-            val cardView: View = recycler.getViewForPosition(i)
-            cardView.layoutDirection = layoutDirection
-            measureChildWithMargins(cardView, 0, 0)
-            viewStack.push(cardView)
-            val cardViewHolder = cardStackLayout.getChildViewHolder(cardView) as CardViewHolder<*>
-            val cardViewModel = cardViewHolder.cardViewModel
-            if (cardViewModel != null) {
-                Timber.d("layoutChildren: pushView CardViewModel = %s", cardViewModel.toString())
-            } else {
-                Timber.d("layoutChildren: pushView CardViewModel is null for ViewHolder: %s", getCanonicalClassName(cardViewHolder))
-            }
-
-            // 布局卡片
-            layoutDecorated(cardView, 0, 0, this.cardWidth, this.cardHeight)
+            val viewForPosition = recycler.getViewForPosition(i)
+            viewForPosition.layoutDirection = layoutDirection
+            measureChildWithMargins(viewForPosition, 0, 0)
+            arrayDeque.push(viewForPosition)
+            layoutDecorated(viewForPosition, 0, 0, this.cardWidth, this.cardHeight)
         }
-
-
-        // 按照从下到上的顺序添加卡片视图
-        while (!viewStack.isEmpty()) {
-            val cardView = viewStack.pop()
-            ensureNotAttachedToAnotherParent(cardView)
-            addView(cardView)
-
-
-            // 设置卡片状态
-            val cardViewHolder: CardViewHolder<*> = cardStackLayout.getChildViewHolder(cardView) as CardViewHolder<*>
-            // 打印CardViewHolder中的cardViewModel
-            val cardViewModel = cardViewHolder.cardViewModel
-            if (cardViewModel != null) {
-                Timber.d("layoutChildren: addView CardViewModel = %s", cardViewModel.toString())
-            } else {
-                Timber.d("layoutChildren: addView CardViewModel is null for ViewHolder: %s", getCanonicalClassName(cardViewHolder))
-            }
-            if (!viewStack.isEmpty()) {
-                // 不是顶部卡片
+        while (!arrayDeque.isEmpty()) {
+            val view = arrayDeque.pop() as View
+            ensureNotAttachedToAnotherParent(view)
+            addView(view)
+            val cardViewHolder:CardViewHolder<*> = this.cardStackLayout.getChildViewHolder(view) as CardViewHolder<*>
+            if (!arrayDeque.isEmpty()) {
                 cardViewHolder.onCardAtTop(false)
-            } else if (cardView !== this.topCard) {
-                // 是顶部卡片，且不同于之前的顶部卡片
+            } else if (view !== this.topCard) {
                 cardViewHolder.onCardAtTop(true)
-                this.topCard = cardView
-                cardPresentedListener.onCardPresented(cardView)
+                this.topCard = view
+                this.cardPresentedListener.onCardPresented(view)
             }
         }
     }
