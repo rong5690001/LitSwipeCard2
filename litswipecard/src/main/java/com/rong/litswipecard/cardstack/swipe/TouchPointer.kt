@@ -57,7 +57,6 @@ class TouchPointer {
      * @return 是否正在拖动
      */
     var isDragging: Boolean = false
-        private set
     val dragConstraints: DragConstraints?
 
     /**

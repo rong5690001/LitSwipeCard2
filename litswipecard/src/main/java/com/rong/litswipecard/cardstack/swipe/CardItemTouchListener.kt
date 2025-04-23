@@ -398,9 +398,17 @@ abstract class CardItemTouchListener
      * @param motionEvent 触摸事件
      */
     private fun handleActionCancel(motionEvent: MotionEvent) {
-        val itemView = activeTouchPointer!!.viewHolder.itemView
-        dispatchCancelEvent(itemView, motionEvent)
-        unselectViewHolder(true)
+        val touchPointer = this.activeTouchPointer
+        if (touchPointer != null) {
+            val viewHolder = touchPointer.viewHolder
+            dispatchActionDownEvent(viewHolder.itemView, motionEvent)
+            this.cardAnimator.startRecoverAnimation(viewHolder, recyclerView, activeTouchPointer!!.firstTouchPoint)
+        }
+        unselectViewHolder(false)
+    }
+
+    private fun q(motionEvent: MotionEvent) {
+        this.velocityTracker?.addMovement(motionEvent)
     }
 
     /**
@@ -534,41 +542,47 @@ abstract class CardItemTouchListener
      * @param motionEvent 触摸事件
      */
     override fun onTouchEvent(recyclerView: RecyclerView, motionEvent: MotionEvent) {
-        val touchPointer = this.activeTouchPointer ?: return
-
-        val actionMasked: Int = MotionEventCompat.getActionMasked(motionEvent)
-        Timber.d("Touch Event - Action: %s", when(actionMasked) {
-            MotionEvent.ACTION_DOWN -> "DOWN"
-            MotionEvent.ACTION_MOVE -> "MOVE"
-            MotionEvent.ACTION_UP -> "UP"
-            MotionEvent.ACTION_CANCEL -> "CANCEL"
-            else -> "OTHER"
-        })
-
-        when (actionMasked) {
-            MotionEvent.ACTION_POINTER_DOWN -> {}
-            MotionEvent.ACTION_POINTER_UP -> {}
-            MotionEvent.ACTION_DOWN -> handleActionDown(motionEvent)
-            MotionEvent.ACTION_MOVE -> handleActionMove(motionEvent)
-            MotionEvent.ACTION_UP -> {
-                if (this.velocityTracker != null) {
-                    velocityTracker!!.addMovement(motionEvent)
-                    velocityTracker!!.computeCurrentVelocity(swipeThresholdDetector.velocityTrackingUnits)
-                    Timber.d("Touch Up - Velocity - X: %.2f, Y: %.2f", 
-                        velocityTracker!!.xVelocity, velocityTracker!!.yVelocity)
-                }
-                dispatchTouchEndEvent(touchPointer.viewHolder.itemView, motionEvent)
-                if (touchPointer.isDragging && shouldPerformSwipeOutAnimation(touchPointer)) {
-                    Timber.d("Performing swipe out animation")
-                    performSwipeOutAnimation(touchPointer)
-                } else {
-                    Timber.d("Touch ended without swipe")
-                    cardAnimator.onTouchEnd(touchPointer.viewHolder.itemView)
-                }
-                handleActionUp(motionEvent)
-            }
-            MotionEvent.ACTION_CANCEL -> handleActionCancel(motionEvent)
+        if (this.activeTouchPointer == null) {
+            return
         }
+        val actionMasked = MotionEventCompat.getActionMasked(motionEvent)
+        val findPointerIndex = motionEvent.findPointerIndex(activeTouchPointer!!.pointerId)
+        if (actionMasked != MotionEvent.ACTION_UP) {
+            if (actionMasked != MotionEvent.ACTION_MOVE) {
+                if (actionMasked != MotionEvent.ACTION_CANCEL) {
+                    if (actionMasked == MotionEvent.ACTION_POINTER_UP && motionEvent.getPointerId(MotionEventCompat.getActionIndex(motionEvent)) === activeTouchPointer!!.pointerId) {
+                        handleActionCancel(motionEvent)
+                    }
+                }
+            } else {
+                if (findPointerIndex < 0) {
+                    return
+                }
+                calculateTouchDelta(this.touchDelta, motionEvent, findPointerIndex)
+                val pointF: PointF = this.touchDelta
+                val deltaX = pointF.x
+                if (deltaX == 0.0f && pointF.y == 0.0f) {
+                    return
+                }
+                activeTouchPointer!!.updateDragX(deltaX)
+                val dragConstraints: DragConstraints = activeTouchPointer!!.dragConstraints!!
+                var canDragUp = false
+                val canDragDown = this.touchDelta.y > 0.0f && dragConstraints.canDragDown
+                if (this.touchDelta.y < 0.0f && dragConstraints.canDragUp) {
+                    canDragUp = true
+                }
+                if (canDragDown || canDragUp) {
+                    activeTouchPointer!!.updateDragY(this.touchDelta.y)
+                }
+                if (!this.touchHelperUtil.isBelowThreshold(this.activeTouchPointer!!, this.swipeThresholdDetector) && !activeTouchPointer!!.isDragging) {
+                    activeTouchPointer!!.isDragging = true
+                }
+                recyclerView.invalidate()
+            }
+            q(motionEvent)
+        }
+        handleActionUp(motionEvent)
+        q(motionEvent)
     }
 
     /**
