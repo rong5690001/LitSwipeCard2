@@ -34,13 +34,10 @@ class CardStackItemAnimator
     private var pendingAnimationsCount = 0
 
     private inner class AnimationEndListener(private val holder: RecyclerView.ViewHolder) : AnimatorListenerAdapter() {
-        override fun onAnimationStart(animation: Animator) {}
         override fun onAnimationEnd(animation: Animator) {
             dispatchAnimationFinished(holder)
             pendingAnimationsCount--
         }
-        override fun onAnimationCancel(animation: Animator) {}
-        override fun onAnimationRepeat(animation: Animator) {}
     }
 
     private inner class CardAnimationWrapper(
@@ -196,88 +193,43 @@ class CardStackItemAnimator
         cardAnimation.start()
     }
 
-    override fun animateDisappearance(
-        holder: RecyclerView.ViewHolder,
-        preLayoutInfo: ItemHolderInfo,
-        postLayoutInfo: ItemHolderInfo?
-    ): Boolean {
-        val existingAnimation = cardAnimator.findCardAnimation(holder)
-        val disappearingAnimation = getDisappearingAnimation(holder)
-
-        when {
-            existingAnimation == null && disappearingAnimation == null -> {
-                ViewCompat.setAlpha(holder.itemView, 0f)
-                dispatchAnimationFinished(holder)
-                return false
-            }
-            disappearingAnimation != null -> {
-                handleDisappearingAnimation(holder, disappearingAnimation)
-                return true
-            }
-            existingAnimation?.isRunning == true && existingAnimation.animationType == AnimationType.SWIPE_OUT -> {
-                pendingAnimationsCount++
-                existingAnimation.addListener(AnimationEndListener(holder))
-                return true
-            }
-            else -> {
-                cardAnimator.endCardAnimation(holder)
-                dispatchAnimationFinished(holder)
-                return false
-            }
-        }
-    }
-
     override fun animateAppearance(
-        holder: RecyclerView.ViewHolder,
+        viewHolder: RecyclerView.ViewHolder,
         preLayoutInfo: ItemHolderInfo?,
         postLayoutInfo: ItemHolderInfo
     ): Boolean {
-        val existingAnimation = cardAnimator.findCardAnimation(holder)
-        val appearingAnimation = getAppearingAnimation(holder)
-
-        if (existingAnimation != null) {
-            cardAnimator.endCardAnimation(holder)
+        val cardAnimation: CardAnimation
+        val findCardAnimation = this.cardAnimator.findCardAnimation(viewHolder)
+        val appearingAnimation = getAppearingAnimation(viewHolder)
+        if (findCardAnimation != null) {
+            this.cardAnimator.endCardAnimation(viewHolder)
         }
-
-        ViewCompat.setAlpha(holder.itemView, 1f)
-
+        ViewCompat.setAlpha(viewHolder.itemView, 1.0f)
         if (appearingAnimation == null) {
-            dispatchAnimationFinished(holder)
+            dispatchAnimationFinished(viewHolder)
             return false
         }
-
-        pendingAnimationsCount++
+        this.pendingAnimationsCount++
         val startX = appearingAnimation.startX()
         val startY = appearingAnimation.startY()
-
-        val cardAnimation = CardAnimationWrapper(
-            holder,
-            AnimationType.RECOVER,
-            PointF(startX, startY),
-            startX,
-            startY,
-            appearingAnimation.endX(),
-            appearingAnimation.endY(),
-            appearingAnimation.startRotation(),
-            appearingAnimation.endRotation(),
-            appearingAnimation.startAlpha(),
-            appearingAnimation.endAlpha(),
-            holder
-        ).apply {
-            if (appearingAnimation.durationMilli() > 0) {
-                duration = appearingAnimation.durationMilli().toLong()
-            }
-            appearingAnimation.interpolator()?.let { setInterpolator(it) }
-            addListener(AnimationEndListener(holder))
-
-            if (isRewindAnimation(appearingAnimation)) {
-                val rewindListener = RewindAnimationListener(holder.itemView)
-                addListener(rewindListener)
-                addUpdateListener(rewindListener)
-            }
+        val bVar =
+            CardAnimationWrapper(viewHolder, AnimationType.RECOVER, PointF(startX, startY), startX, startY, appearingAnimation.endX(), appearingAnimation.endY(), appearingAnimation.startRotation(), appearingAnimation.endRotation(), appearingAnimation.startAlpha(), appearingAnimation.endAlpha(), viewHolder)
+        if (appearingAnimation.durationMilli() > 0) {
+            bVar.duration = appearingAnimation.durationMilli().toLong()
         }
-
-        cardAnimator.addActiveAnimation(cardAnimation)
+        val interpolator = appearingAnimation.interpolator()
+        if (interpolator != null) {
+            bVar.setInterpolator(interpolator)
+        }
+        if (isRewindAnimation(appearingAnimation)) {
+            cardAnimation = bVar
+            val eVar = RewindAnimationListener(viewHolder.itemView)
+            cardAnimation.addListener(eVar)
+            cardAnimation.addUpdateListener(eVar)
+        } else {
+            cardAnimation = bVar
+        }
+        this.cardAnimator.addActiveAnimation(cardAnimation)
         cardAnimation.start()
         return true
     }
@@ -291,6 +243,46 @@ class CardStackItemAnimator
         dispatchAnimationFinished(oldHolder)
         if (oldHolder === newHolder) return false
         dispatchAnimationFinished(newHolder)
+        return false
+    }
+
+    override fun animateDisappearance(
+        viewHolder: RecyclerView.ViewHolder,
+        preLayoutInfo: ItemHolderInfo,
+        postLayoutInfo: ItemHolderInfo?
+    ): Boolean {
+        val findCardAnimation = this.cardAnimator.findCardAnimation(viewHolder)
+        val disappearingAnimation = getDisappearingAnimation(viewHolder)
+        if (findCardAnimation == null || disappearingAnimation == null) {
+            if (disappearingAnimation != null) {
+                handleDisappearingAnimation(viewHolder, disappearingAnimation)
+                return true
+            }
+            if (findCardAnimation != null && findCardAnimation.isRunning) {
+                this.cardAnimator.endCardAnimation(viewHolder)
+            }
+            ViewCompat.setAlpha(viewHolder.itemView, 0.0f)
+            dispatchAnimationFinished(viewHolder)
+            return false
+        }
+        findCardAnimation.isFlaggedForRemoval = true
+        if (findCardAnimation.isRunning && findCardAnimation.animationType == AnimationType.SWIPE_OUT) {
+            this.pendingAnimationsCount++
+            findCardAnimation.addListener(AnimationEndListener(viewHolder))
+            return true
+        }
+        if (!findCardAnimation.isRunning && findCardAnimation.animationType == AnimationType.RECOVER) {
+            this.cardAnimator.endCardAnimation(findCardAnimation.viewHolder)
+            handleDisappearingAnimation(viewHolder, disappearingAnimation)
+            return false
+        }
+        if (findCardAnimation.isRunning && findCardAnimation.animationType == AnimationType.RECOVER) {
+            this.cardAnimator.endCardAnimation(viewHolder)
+            handleDisappearingAnimation(viewHolder, disappearingAnimation)
+            return false
+        }
+        this.cardAnimator.endCardAnimation(viewHolder)
+        dispatchAnimationFinished(findCardAnimation.viewHolder)
         return false
     }
 
