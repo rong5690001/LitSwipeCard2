@@ -315,28 +315,18 @@ class CardStackLayoutManager(cardStackLayout: CardStackLayout) : RecyclerView.La
 
     override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
         Timber.d("onLayoutChildren - Item count: %d", state.itemCount)
-        
-        if (state.itemCount == 0) {
-            Timber.d("No items to layout")
-            removeAndRecycleAllViews(recycler)
-            return
-        }
-
-        // 确保顶部卡片始终在最上层
-        val topCard = findTopCardView()
-        if (topCard != null) {
-            Timber.d("onLayoutChildren: Bringing top card to front, %s", topCard.toString())
-            topCard.bringToFront()
-        }
-
         this.isInLayout = true
-        detachAndScrapAttachedViews(recycler)
-        layoutChildren(recycler, state)
-        this.isInLayout = false
+        if (itemCount == 0) {
+            detachAndScrapAttachedViews(recycler)
+        } else {
+            detachAndScrapAttachedViews(recycler)
+            layoutChildren(recycler, state)
+        }
     }
 
     override fun onLayoutCompleted(state: RecyclerView.State) {
         super.onLayoutCompleted(state)
+        this.isInLayout = false
         processPendingAttachStateEvents()
     }
 

@@ -50,14 +50,13 @@ class TouchPointer {
      * @return Y方向拖动距离
      */
     var dragY: Float = 0f
-        private set
 
     /**
      * 是否正在拖动
      * @return 是否正在拖动
      */
     var isDragging: Boolean = false
-    val dragConstraints: DragConstraints?
+    val dragConstraints: DragConstraints
 
     /**
      * 构造函数
@@ -68,7 +67,7 @@ class TouchPointer {
      * @param pointerId 指针ID
      * @param dragConstraints 拖拽约束
      */
-    constructor(viewHolder: RecyclerView.ViewHolder, touchPoint: PointF, startX: Float, startY: Float, pointerId: Int, dragConstraints: DragConstraints?) {
+    constructor(viewHolder: RecyclerView.ViewHolder, touchPoint: PointF, startX: Float, startY: Float, pointerId: Int, dragConstraints: DragConstraints) {
         this.viewHolder = viewHolder
         this.startX = startX
         this.startY = startY
@@ -136,7 +135,7 @@ class TouchPointer {
      * @param motionEvent 触摸事件
      * @param dragConstraints 拖拽约束
      */
-    internal constructor(viewHolder: RecyclerView.ViewHolder, motionEvent: MotionEvent, dragConstraints: DragConstraints?) {
+    internal constructor(viewHolder: RecyclerView.ViewHolder, motionEvent: MotionEvent, dragConstraints: DragConstraints) {
         this.pointerId = -1
         this.viewHolder = viewHolder
         this.startX = motionEvent.x

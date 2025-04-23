@@ -98,7 +98,7 @@ class CardItemTouchHelperUtil {
      * @param cardAnimator 卡片动画控制器
      * @return 如果准备好接受滑动操作返回true，否则返回false
      */
-    protected fun isReadyToAcceptSwipes(viewHolder: RecyclerView.ViewHolder, recyclerView: RecyclerView, cardAnimator: CardAnimator): Boolean {
+    fun isReadyToAcceptSwipes(viewHolder: RecyclerView.ViewHolder, recyclerView: RecyclerView, cardAnimator: CardAnimator): Boolean {
         val viewIndex = getChildViewIndex(viewHolder.itemView, recyclerView)
         if (viewIndex < 0) {
             Timber.w("isReadyToAcceptSwipes for index <0 $viewHolder", arrayOfNulls<Any>(0))
