@@ -224,9 +224,6 @@ internal class CardDecorationManager(cardStackLayout: CardStackLayout, swipeThre
         Timber.d("Decoration Draw Over - Translation: (%.2f, %.2f), Rotation: %.2f, Direction: %s, Threshold: %b, TouchActive: %b",
             translationX, translationY, rotation, swipeDirection, isThresholdExceeded, isTouchActive)
 
-        // 确保顶部卡片始终在最上层
-        view.bringToFront()
-
         // 处理移动开始事件
         val oldTranslationX = this.currentTranslationX
         if (oldTranslationX == 0.0f) {
@@ -240,11 +237,6 @@ internal class CardDecorationManager(cardStackLayout: CardStackLayout, swipeThre
                     this.currentTranslationX = translationX
                     this.currentTranslationY = translationY
                     this.currentRotation = rotation
-                    // 直接更新视图位置
-                    ViewCompat.setTranslationX(view, translationX)
-                    ViewCompat.setTranslationY(view, translationY)
-                    view.rotation = rotation
-                    view.invalidate()
                 }
             }
         }
@@ -260,11 +252,6 @@ internal class CardDecorationManager(cardStackLayout: CardStackLayout, swipeThre
             Timber.d("Card movement in progress - New position: (%.2f, %.2f), Rotation: %.2f",
                 translationX, translationY, rotation)
             notifyTopCardMoved(translationX, translationY, rotation, isTouchActive)
-            // 直接更新视图位置
-            ViewCompat.setTranslationX(view, translationX)
-            ViewCompat.setTranslationY(view, translationY)
-            view.rotation = rotation
-            view.invalidate()
         }
 
         // 更新当前位置和旋转值

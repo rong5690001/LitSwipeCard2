@@ -619,10 +619,8 @@ abstract class CardItemTouchListener
      * @param shouldPublishUpdate 是否应发布更新
      */
     fun unselectViewHolder(shouldPublishUpdate: Boolean) {
-        val touchPointer = this.activeTouchPointer
-        if (touchPointer != null) {
-            this.activeTouchPointer = null
-            releaseVelocityTracker()
+        this.activeTouchPointer = null
+        if (shouldPublishUpdate) {
             allowParentTouchIntercept()
         }
     }
@@ -633,10 +631,9 @@ abstract class CardItemTouchListener
     fun unselectViewHolderDoNotPublishUpdate() {
         val touchPointer = this.activeTouchPointer
         if (touchPointer != null) {
-            this.activeTouchPointer = null
-            releaseVelocityTracker()
-            recyclerView.getParent().requestDisallowInterceptTouchEvent(false)
+            this.cardAnimator.startRecoverAnimation(touchPointer.viewHolder, recyclerView, touchPointer.firstTouchPoint)
         }
+        unselectViewHolder(false)
     }
 
     /**

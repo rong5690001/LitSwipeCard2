@@ -238,7 +238,7 @@ class CardAnimator {
         recyclerView.invalidate()
     }
 
-    /**
+    /**x
      * 根据视图持有者查找卡片动画
      * @param viewHolder 要查找的视图持有者
      * @return 关联的卡片动画，如果没有则返回null
@@ -250,14 +250,5 @@ class CardAnimator {
             }
         }
         return null
-    }
-
-    /**
-     * 处理触摸结束事件
-     * @param itemView 卡片项视图
-     */
-    fun onTouchEnd(itemView: View?) {
-        // 触摸结束的处理逻辑
-        
     }
 }

@@ -209,8 +209,8 @@ abstract class CardItemDecorator(private val cardAnimator: CardAnimator) : Recyc
                 activePointer.dragY,
                 view2.alpha,
                 getRotation(view2, activePointer.dragX, activePointer.firstTouchPoint.y),
-                false,
-                true
+                isRecovering = false,
+                isThresholdCrossed = true
             )
         }
         
