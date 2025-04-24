@@ -100,10 +100,22 @@ class CardStackItemAnimator
         startAlpha,
         endAlpha
     ) {
+        init {
+            isFlaggedForRemoval = true
+            Timber.d("SwipeOutAnimationWrapper:: initialized with isFlaggedForRemoval=true")
+        }
+
         override fun onAnimationEnd(animator: Animator) {
+            Timber.d("SwipeOutAnimationWrapper::onAnimationEnd:: before super call, isFlaggedForRemoval=%b", isFlaggedForRemoval)
             super.onAnimationEnd(animator)
+            Timber.d("SwipeOutAnimationWrapper::onAnimationEnd:: after super call, isFlaggedForRemoval=%b", isFlaggedForRemoval)
+            if (!isFlaggedForRemoval) {
+                Timber.w("SwipeOutAnimationWrapper::onAnimationEnd:: isFlaggedForRemoval was unexpectedly false, setting it back to true")
+                isFlaggedForRemoval = true
+            }
             pendingAnimationsCount--
             this@CardStackItemAnimator.dispatchAnimationFinished(holder)
+            Timber.d("SwipeOutAnimationWrapper::onAnimationEnd:: animation finished, final isFlaggedForRemoval=%b", isFlaggedForRemoval)
         }
     }
 
@@ -187,14 +199,13 @@ class CardStackItemAnimator
                 duration = animation.durationMilli().toLong()
             }
             animation.interpolator()?.let { setInterpolator(it) }
-            isFlaggedForRemoval = true
             addListener(AnimationEndListener(holder))
         }
 
-        Timber.d("handleDisappearingAnimation:: created animation with isFlaggedForRemoval=true")
+        Timber.d("handleDisappearingAnimation:: created animation with isFlaggedForRemoval=%b", cardAnimation.isFlaggedForRemoval)
         cardAnimator.addActiveAnimation(cardAnimation)
         cardAnimation.start()
-        Timber.d("handleDisappearingAnimation:: end, animation started")
+        Timber.d("handleDisappearingAnimation:: end, animation started with isFlaggedForRemoval=%b", cardAnimation.isFlaggedForRemoval)
     }
 
     override fun animateAppearance(

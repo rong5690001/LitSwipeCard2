@@ -100,6 +100,13 @@ open class CardAnimation protected constructor(
         animator.setDuration(this.duration)
         animator.setTarget(viewHolder.itemView)
         animator.addListener(this)
+        
+        // 如果是滑出动画，设置isFlaggedForRemoval为true
+        if (animationType == AnimationType.SWIPE_OUT) {
+            isFlaggedForRemoval = true
+            Timber.d("init:: Setting isFlaggedForRemoval=true for SWIPE_OUT animation, viewHolder position=%d", viewHolder.adapterPosition)
+        }
+        
         updateAnimation(0.0f)
         
         if (startRotation != -2.1474836E9f && endRotation != -2.1474836E9f) {
@@ -257,6 +264,8 @@ open class CardAnimation protected constructor(
         val remainingTime = max(0.0, (remainingDuration - ((this.fraction * remainingDuration).toLong())).toDouble()).toLong()
         val animationCopy = CardAnimation(this.viewHolder, this.animationType!!, this.firstTouchPoint!!, currentX, currentY, targetX, targetY)
         animationCopy.duration = remainingTime
+        animationCopy.isFlaggedForRemoval = this.isFlaggedForRemoval
+        Timber.d("copy:: created animation copy with isFlaggedForRemoval=%b", animationCopy.isFlaggedForRemoval)
         return animationCopy
     }
 

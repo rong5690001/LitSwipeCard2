@@ -1,8 +1,10 @@
 package com.rong.litswipecard.cardstack.cardstack
 
+import android.animation.Animator
 import android.graphics.PointF
 import androidx.recyclerview.widget.RecyclerView
 import com.rong.litswipecard.cardstack.swipe.CardAnimation
+import timber.log.Timber
 
 /**
  * 卡片滑出动画
@@ -24,5 +26,32 @@ open class SwipeOutCardAnimation
  * @param f7 起始透明度
  * @param f8 结束透明度
  */
-internal constructor(viewHolder: RecyclerView.ViewHolder, animationType: AnimationType?, pointF: PointF?, f: Float, f2: Float, f3: Float, f4: Float, f5: Float, f6: Float, f7: Float, f8: Float) :
-    CardAnimation(viewHolder, animationType, pointF, f, f2, f3, f4, f5, f6, f7, f8)
+internal constructor(
+    viewHolder: RecyclerView.ViewHolder, 
+    animationType: AnimationType?, 
+    pointF: PointF?, 
+    f: Float, 
+    f2: Float, 
+    f3: Float, 
+    f4: Float, 
+    f5: Float, 
+    f6: Float, 
+    f7: Float, 
+    f8: Float
+) : CardAnimation(viewHolder, animationType, pointF, f, f2, f3, f4, f5, f6, f7, f8) {
+    
+    init {
+        isFlaggedForRemoval = true
+        Timber.d("SwipeOutCardAnimation:: initialized with isFlaggedForRemoval=true")
+    }
+
+    override fun onAnimationEnd(animator: Animator) {
+        Timber.d("SwipeOutCardAnimation::onAnimationEnd:: before super call, isFlaggedForRemoval=%b", isFlaggedForRemoval)
+        super.onAnimationEnd(animator)
+        Timber.d("SwipeOutCardAnimation::onAnimationEnd:: after super call, isFlaggedForRemoval=%b", isFlaggedForRemoval)
+        if (!isFlaggedForRemoval) {
+            Timber.w("SwipeOutCardAnimation::onAnimationEnd:: isFlaggedForRemoval was unexpectedly false, setting it back to true")
+            isFlaggedForRemoval = true
+        }
+    }
+}

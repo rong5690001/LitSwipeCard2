@@ -189,17 +189,24 @@ class CardStackSwipeHelper(cardStackLayout: CardStackLayout) {
      */
     private inner class CardDecoratorImpl(cardAnimator: CardAnimator) : CardItemDecorator(cardAnimator) {
         override val activeTouchPointer: TouchPointer?
-            get() = cardTouchListener.activeTouchPointer
+            get() {
+                Timber.d("CardDecoratorImpl: 获取活动触摸指针")
+                return cardTouchListener.activeTouchPointer
+            }
 
         override fun getDirectionFromMovement(dx: Float, dy: Float): SwipeDirection {
+            Timber.d("CardDecoratorImpl: 从移动获取方向 dx=%.2f, dy=%.2f", dx, dy)
             return swipeThresholdDetector.getDirectionFromMovement(dx, dy)
         }
 
         override fun getRotation(view: View, dx: Float, dy: Float): Float {
-            return swipeThresholdDetector.getRotation(view, dx, dy)
+            val rotation = swipeThresholdDetector.getRotation(view, dx, dy)
+            Timber.d("CardDecoratorImpl: 获取旋转角度 dx=%.2f, dy=%.2f, rotation=%.2f", dx, dy, rotation)
+            return rotation
         }
 
         override fun releaseActiveTouchPointer() {
+            Timber.d("CardDecoratorImpl: 释放活动触摸指针")
             cardTouchListener.unselectViewHolder(false)
         }
     }

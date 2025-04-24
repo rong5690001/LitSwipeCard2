@@ -94,7 +94,9 @@ abstract class CardItemTouchListener
      * @param pointerIndex 指针索引
      */
     private fun calculateTouchDelta(deltaPoint: PointF, motionEvent: MotionEvent, pointerIndex: Int) {
+        Timber.d("calculateTouchDelta: 开始计算触摸增量")
         if (this.activeTouchPointer == null) {
+            Timber.d("calculateTouchDelta: 活动触摸指针为空，设置增量为0")
             deltaPoint.set(0.0f, 0.0f)
             return
         }
@@ -102,11 +104,16 @@ abstract class CardItemTouchListener
         val y: Float = motionEvent.getY(pointerIndex)
         val deltaX = x - activeTouchPointer!!.startX
         val deltaY = y - activeTouchPointer!!.startY
+        Timber.d("calculateTouchDelta: x=%.2f, y=%.2f, deltaX=%.2f, deltaY=%.2f", x, y, deltaX, deltaY)
+        
         if (activeTouchPointer!!.dragX != 0.0f || activeTouchPointer!!.dragY != 0.0f) {
+            Timber.d("calculateTouchDelta: 已有拖拽值，设置增量为 deltaX=%.2f, deltaY=%.2f", deltaX, deltaY)
             deltaPoint.set(deltaX, deltaY)
         } else if (swipeThresholdDetector.isBelowThreshold(deltaX, deltaY)) {
+            Timber.d("calculateTouchDelta: 低于阈值，设置增量为0")
             deltaPoint.set(0.0f, 0.0f)
         } else {
+            Timber.d("calculateTouchDelta: 更新触摸起始点并设置小增量")
             activeTouchPointer!!.updateTouchStartPoint(x, y)
             deltaPoint.set(0.1f, 0.1f)
         }
@@ -166,7 +173,7 @@ abstract class CardItemTouchListener
      * @param touchPointer 触摸指针
      */
     private fun performSwipeOutAnimation(touchPointer: TouchPointer) {
-        Timber.d("performSwipeOutAnimation:: start, viewHolder position=%d", touchPointer.viewHolder.adapterPosition)
+        Timber.d("performSwipeOutAnimation: start, viewHolder position=%d", touchPointer.viewHolder.adapterPosition)
         val endX: Float
         val deltaX: Float
         val finalY: Float
@@ -345,36 +352,49 @@ abstract class CardItemTouchListener
      * 处理动作取消事件
      * @param motionEvent 触摸事件
      */
-    private fun o(motionEvent: MotionEvent) {
+    private fun processActionUp(motionEvent: MotionEvent) {
+        Timber.d("processActionUp: 开始处理ACTION_UP事件")
         val touchPointer = this.activeTouchPointer
         if (touchPointer != null) {
             val viewHolder = touchPointer.viewHolder
             val isDragging = touchPointer.isDragging
             val isBelowThreshold = this.touchHelperUtil.isBelowThreshold(this.activeTouchPointer!!, this.swipeThresholdDetector)
-            Timber.d("o: isDragging=%b, isBelowThreshold=%b", isDragging, isBelowThreshold)
+            Timber.d("processActionUp: isDragging=%b, isBelowThreshold=%b", isDragging, isBelowThreshold)
             if (!isBelowThreshold || isDragging) {
+                Timber.d("processActionUp: 超过阈值或正在拖拽，发送取消事件")
                 dispatchCancelEvent(viewHolder.itemView, motionEvent)
                 val isReadyToAcceptSwipes: Boolean = this.touchHelperUtil.isReadyToAcceptSwipes(viewHolder, recyclerView, this.cardAnimator)
                 val shouldPerformSwipeOut: Boolean = shouldPerformSwipeOutAnimation(this.activeTouchPointer!!)
+                Timber.d("processActionUp: isReadyToAcceptSwipes=%b, shouldPerformSwipeOut=%b", isReadyToAcceptSwipes, shouldPerformSwipeOut)
                 if (isReadyToAcceptSwipes && shouldPerformSwipeOut) {
                     val dragX: Float = activeTouchPointer!!.dragX
                     val dragY: Float = activeTouchPointer!!.dragY
                     val velocityTracker: VelocityTracker = this.velocityTracker!!
                     val xVelocity = velocityTracker.xVelocity
                     val yVelocity = velocityTracker.yVelocity
-                    if (this.preSwipeListener.onPreSwipe(viewHolder.adapterPosition, this.swipeThresholdDetector.determineSwipeDirection(dragX, dragY, xVelocity, yVelocity))) {
+                    Timber.d("processActionUp: dragX=%.2f, dragY=%.2f, xVelocity=%.2f, yVelocity=%.2f", dragX, dragY, xVelocity, yVelocity)
+                    val swipeDirection = this.swipeThresholdDetector.determineSwipeDirection(dragX, dragY, xVelocity, yVelocity)
+                    Timber.d("processActionUp: 确定的滑动方向=%s", swipeDirection)
+                    if (this.preSwipeListener.onPreSwipe(viewHolder.adapterPosition, swipeDirection)) {
+                        Timber.d("processActionUp: preSwipeListener允许滑动，执行滑出动画")
                         performSwipeOutAnimation(this.activeTouchPointer!!)
                     } else {
+                        Timber.d("processActionUp: preSwipeListener不允许滑动，执行恢复动画")
                         this.cardAnimator.startRecoverAnimation(viewHolder, recyclerView, activeTouchPointer!!.firstTouchPoint)
                     }
                 } else {
+                    Timber.d("processActionUp: 不满足滑出条件，执行恢复动画")
                     this.cardAnimator.startRecoverAnimation(viewHolder, recyclerView, activeTouchPointer!!.firstTouchPoint)
                 }
             } else {
+                Timber.d("processActionUp: 低于阈值且未拖拽，执行恢复动画并分发触摸结束事件")
                 this.cardAnimator.startRecoverAnimation(viewHolder, recyclerView, activeTouchPointer!!.firstTouchPoint)
                 dispatchTouchEndEvent(viewHolder.itemView, motionEvent)
             }
+        } else {
+            Timber.d("processActionUp: 没有活动的触摸指针")
         }
+        Timber.d("processActionUp: 取消选择视图持有者")
         unselectViewHolder(true)
     }
 
@@ -386,7 +406,7 @@ abstract class CardItemTouchListener
         val touchPointer = this.activeTouchPointer
         if (touchPointer != null) {
             val viewHolder = touchPointer.viewHolder
-            dispatchActionDownEvent(viewHolder.itemView, motionEvent)
+            dispatchCancelEvent(viewHolder.itemView, motionEvent)
             this.cardAnimator.startRecoverAnimation(viewHolder, recyclerView, activeTouchPointer!!.firstTouchPoint)
         }
         unselectViewHolder(false)
@@ -407,7 +427,11 @@ abstract class CardItemTouchListener
             if (activeTouchPointer != null) "set" else "null")
     }
 
-    private fun q(motionEvent: MotionEvent) {
+    /**
+     * 添加移动事件到速度追踪器
+     * @param motionEvent 触摸事件
+     */
+    private fun addMovementToVelocityTracker(motionEvent: MotionEvent) {
         this.velocityTracker?.addMovement(motionEvent)
     }
 
@@ -462,6 +486,19 @@ abstract class CardItemTouchListener
         val dragConstraints = createDragConstraints(viewHolder)
         val touchPointer: TouchPointer = newTouchPointer(viewHolder, motionEvent, dragConstraints)
         this.activeTouchPointer = touchPointer
+        // 打印触摸指针信息
+        Timber.d("findAndSelectViewHolder: 创建触摸指针成功，位置=%d, 起始点=(%.2f, %.2f), 约束=[上=%b, 下=%b]", 
+            touchPointer.viewHolder.adapterPosition,
+            touchPointer.startX,
+            touchPointer.startY,
+            dragConstraints.canDragUp,
+            dragConstraints.canDragDown)
+        
+        if (touchPointer.firstTouchPoint != null) {
+            Timber.d("findAndSelectViewHolder: 首次触摸点=(%.2f, %.2f)", 
+                touchPointer.firstTouchPoint.x,
+                touchPointer.firstTouchPoint.y)
+        }
         Timber.d("findAndSelectViewHolder:: Created touch pointer and dispatching ACTION_DOWN")
         dispatchActionDownEvent(childView, motionEvent)
     }
@@ -477,7 +514,7 @@ abstract class CardItemTouchListener
      * @param motionEvent 触摸事件
      */
     protected fun handleActionUp(motionEvent: MotionEvent) {
-        o(motionEvent)
+        processActionUp(motionEvent)
         releaseVelocityTracker()
     }
 
@@ -574,12 +611,12 @@ abstract class CardItemTouchListener
      */
     override fun onTouchEvent(recyclerView: RecyclerView, motionEvent: MotionEvent) {
         val activeTouchPointer = this.activeTouchPointer ?: return
-        val actionMasked = MotionEventCompat.getActionMasked(motionEvent)
+        val actionMasked = motionEvent.actionMasked
         val findPointerIndex = motionEvent.findPointerIndex(activeTouchPointer.pointerId)
-        if (actionMasked != 1) {
-            if (actionMasked != 2) {
-                if (actionMasked != 3) {
-                    if (actionMasked == 6 && motionEvent.getPointerId(MotionEventCompat.getActionIndex(motionEvent)) === activeTouchPointer.pointerId) {
+        if (actionMasked != MotionEvent.ACTION_UP) {
+            if (actionMasked != MotionEvent.ACTION_MOVE) {
+                if (actionMasked != MotionEvent.ACTION_CANCEL) {
+                    if (actionMasked == MotionEvent.ACTION_POINTER_UP && motionEvent.getPointerId(motionEvent.actionIndex) === activeTouchPointer.pointerId) {
                         handleActionCancel(motionEvent)
                     }
                 }
@@ -609,10 +646,10 @@ abstract class CardItemTouchListener
                 recyclerView.invalidate()
                 return
             }
-            q(motionEvent)
+            addMovementToVelocityTracker(motionEvent)
         }
         handleActionUp(motionEvent)
-        q(motionEvent)
+        addMovementToVelocityTracker(motionEvent)
     }
 
     /**

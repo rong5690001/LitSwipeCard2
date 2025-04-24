@@ -99,28 +99,38 @@ class CardItemTouchHelperUtil {
      * @return 如果准备好接受滑动操作返回true，否则返回false
      */
     fun isReadyToAcceptSwipes(viewHolder: RecyclerView.ViewHolder, recyclerView: RecyclerView, cardAnimator: CardAnimator): Boolean {
+        Timber.d("isReadyToAcceptSwipes: 开始检查是否准备好接受滑动")
         val viewIndex = getChildViewIndex(viewHolder.itemView, recyclerView)
+        Timber.d("isReadyToAcceptSwipes: viewIndex=%d, recyclerView.size=%d", viewIndex, recyclerView.size)
+        
         if (viewIndex < 0) {
-            Timber.w("isReadyToAcceptSwipes for index <0 $viewHolder", arrayOfNulls<Any>(0))
+            Timber.w("isReadyToAcceptSwipes: 索引小于0，viewHolder=%s", viewHolder.toString())
             return false
         }
 
         if (viewIndex < 0) {
+            Timber.w("isReadyToAcceptSwipes: 重复检查，索引小于0")
             return false
         }
 
         for (i in recyclerView.size - 1 downTo viewIndex) {
+            Timber.d("isReadyToAcceptSwipes: 检查索引i=%d", i)
             val cardAnimation: CardAnimation? = cardAnimator.findCardAnimation(recyclerView.getChildAt(i))
             if (cardAnimation != null) {
+                Timber.d("isReadyToAcceptSwipes: 找到卡片动画，类型=%s", cardAnimation.animationType)
                 if (cardAnimation.animationType === CardAnimation.AnimationType.SWIPE_OUT) {
                     // 有正在执行滑出动画的卡片
+                    Timber.d("isReadyToAcceptSwipes: 有正在执行滑出动画的卡片，返回false")
                 }
             } else if (i == viewIndex) {
+                Timber.d("isReadyToAcceptSwipes: 当前索引等于目标索引且无动画，返回true")
                 return true
             }
+            Timber.d("isReadyToAcceptSwipes: 循环中提前返回false")
             return false
         }
 
+        Timber.d("isReadyToAcceptSwipes: 循环结束后返回true")
         return true
     }
 
